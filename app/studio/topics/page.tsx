@@ -33,6 +33,7 @@ export default function TopicsPage() {
     // Auto-select the "best" model (first in the compatible list)
     if (currentTopic) {
         const template = currentTopic.templates.find(t => t.id === templateId);
+        // The getCompatibleModelsForTemplate function now sorts by priority, so we just take the first one
         if (template && template.compatibleModels.length > 0) {
             setModel(template.compatibleModels[0]);
         }
@@ -66,7 +67,6 @@ export default function TopicsPage() {
             method: 'POST',
             body: JSON.stringify({ jobId: newJob.id, prompt: finalPrompt, model: selectedModelId })
         }).then(res => res.json()).then(data => {
-            // In a real app, we'd poll. Here we just assume it's queued.
             console.log("Job queued:", data);
         });
 
@@ -154,6 +154,7 @@ export default function TopicsPage() {
                            : 'bg-studio-800 border-studio-700 text-gray-400 hover:border-studio-600'
                          }`}
                        >
+                         {/* Index 0 is guaranteed to be the 'best' due to sorting in modelMapper.ts */}
                          {idx === 0 && (
                              <div className="absolute -top-2 -right-2">
                                  <span className="bg-yellow-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center shadow-lg">

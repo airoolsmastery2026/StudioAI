@@ -42,10 +42,10 @@ export const useStudioStore = create<StudioState>((set) => ({
   jobs: [],
   
   setMode: (mode) => set({ mode }),
-  setTopic: (id) => set({ selectedTopicId: id, selectedTemplateId: null }), // Reset template on topic change
+  setTopic: (id) => set({ selectedTopicId: id, selectedTemplateId: null, selectedModelId: null }), 
   setTemplate: (id) => set({ selectedTemplateId: id }),
   setModel: (id) => set({ selectedModelId: id }),
-  setCloneInput: (text) => set({ cloneInputText: text }),
+  setCloneInput: (text: string) => set({ cloneInputText: text }),
   setVisualDNA: (dna) => set({ visualDNA: dna }),
   setBatchSize: (size) => set({ batchSize: size }),
   

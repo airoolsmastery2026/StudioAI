@@ -7,7 +7,7 @@ import { convertDNAToPrompt } from '@/lib/dnaToPrompt';
 import { v4 as uuidv4 } from 'uuid';
 import { Scan, Sparkles, AlertTriangle, Info, X, Monitor, Sun, Zap, Palette, Ratio, Gauge, Check, MousePointerClick } from 'lucide-react';
 
-// Enhanced Guide Data with State Mapping
+// Enhanced Guide Data
 const DNA_GUIDE_DATA = [
   {
     id: 'camera',

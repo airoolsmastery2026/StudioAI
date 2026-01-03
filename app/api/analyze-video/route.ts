@@ -28,7 +28,7 @@ Target Duration: ${metadata?.duration || 5}s.
 Extract the visual DNA structure. Return ONLY a valid JSON object.
 Required Keys:
 - cameraType (e.g. "Static Tripod", "Dolly In", "Slow Pan")
-- lightingFlow (e.g. "Natural Day", "Golden Hour", "Cyberpunk Neon")
+- lightingFlow (e.g. "Natural Day", "Golden Hour", "Cinematic Night")
 - motionStyle (e.g. "Subtle", "Dynamic", "Slow Motion")
 - pacing (e.g. "Slow", "Medium", "Fast")
 - colorGrade (e.g. "Neutral", "Warm", "Cool", "Vintage")

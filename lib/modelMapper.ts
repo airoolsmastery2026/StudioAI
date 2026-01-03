@@ -56,5 +56,12 @@ export const isModelCompatible = (modelId: string, allowedModels: string[]): boo
 };
 
 export const getCompatibleModelsForTemplate = (allowedModels: string[]): ModelSpec[] => {
-  return AVAILABLE_MODELS.filter(m => allowedModels.includes(m.id));
+  // Filter valid models first
+  const models = AVAILABLE_MODELS.filter(m => allowedModels.includes(m.id));
+  
+  // Sort models based on the order they appear in the allowedModels array
+  // This ensures the template's specific priority order is respected (0 index is best)
+  return models.sort((a, b) => {
+    return allowedModels.indexOf(a.id) - allowedModels.indexOf(b.id);
+  });
 };
