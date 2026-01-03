@@ -33,5 +33,5 @@
     "components/**/*.tsx",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "vite.config.ts"]
+  "exclude": ["node_modules", "vite.config.ts", "vite.config.js"]
 }
