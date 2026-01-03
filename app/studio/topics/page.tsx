@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { useStudioStore } from '@/store/studioStore';
 import { TOPIC_LIBRARY, getTemplateById } from '@/lib/topicLibrary';
-import { AVAILABLE_MODELS, isModelCompatible, getCompatibleModelsForTemplate } from '@/lib/modelMapper';
+import { getCompatibleModelsForTemplate } from '@/lib/modelMapper';
 import { generateSafePrompt } from '@/lib/promptEngine';
 import { v4 as uuidv4 } from 'uuid';
-import { AlertCircle, CheckCircle, Play, Star } from 'lucide-react';
+import { CheckCircle, Play, Star } from 'lucide-react';
 import Link from 'next/link';
 
 export default function TopicsPage() {
@@ -22,6 +22,7 @@ export default function TopicsPage() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [lastJobId, setLastJobId] = useState<string | null>(null);
+  const [isAutoSelected, setIsAutoSelected] = useState(false);
 
   const currentTopic = TOPIC_LIBRARY.find(t => t.id === selectedTopicId);
   const currentTemplate = selectedTemplateId && selectedTopicId ? getTemplateById(selectedTopicId, selectedTemplateId) : null;
@@ -33,11 +34,24 @@ export default function TopicsPage() {
     // Auto-select the "best" model (first in the compatible list)
     if (currentTopic) {
         const template = currentTopic.templates.find(t => t.id === templateId);
-        // The getCompatibleModelsForTemplate function now sorts by priority, so we just take the first one
+        
+        // The first model in the compatibleModels array is considered the "best" / default
         if (template && template.compatibleModels.length > 0) {
-            setModel(template.compatibleModels[0]);
+            const bestModelId = template.compatibleModels[0];
+            setModel(bestModelId);
+            setIsAutoSelected(true);
         }
     }
+  };
+
+  const handleModelSelect = (modelId: string) => {
+    setModel(modelId);
+    setIsAutoSelected(false);
+  };
+
+  const handleTopicSelect = (topicId: string) => {
+    setTopic(topicId);
+    setIsAutoSelected(false);
   };
 
   const handleGenerate = async () => {
@@ -92,7 +106,7 @@ export default function TopicsPage() {
               {TOPIC_LIBRARY.map(topic => (
                 <button
                   key={topic.id}
-                  onClick={() => setTopic(topic.id)}
+                  onClick={() => handleTopicSelect(topic.id)}
                   className={`p-4 rounded-lg border text-left transition-all ${
                     selectedTopicId === topic.id 
                     ? 'bg-blue-600/20 border-blue-500 text-white' 
@@ -138,7 +152,11 @@ export default function TopicsPage() {
           <section>
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center justify-between">
                 3. Select Model
-                {selectedModelId && <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded-full flex items-center gap-1"><CheckCircle size={10}/> Auto-selected</span>}
+                {selectedModelId && isAutoSelected && (
+                  <span className="text-xs bg-green-900/50 text-green-300 px-2 py-0.5 rounded-full flex items-center gap-1 border border-green-800 animate-in fade-in">
+                    <CheckCircle size={10}/> Auto-selected Best Match
+                  </span>
+                )}
             </h3>
             {!selectedTemplateId ? (
                  <div className="text-gray-500 italic text-sm p-4 border border-dashed border-studio-700 rounded">Please select a template first.</div>
@@ -147,7 +165,7 @@ export default function TopicsPage() {
                     {compatibleModels.map((model, idx) => (
                          <button
                          key={model.id}
-                         onClick={() => setModel(model.id)}
+                         onClick={() => handleModelSelect(model.id)}
                          className={`p-3 rounded-lg border text-left transition-all relative ${
                            selectedModelId === model.id 
                            ? 'bg-green-600/20 border-green-500 text-white' 
