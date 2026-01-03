@@ -16,9 +16,9 @@ Professional AI Video Production Studio built with Next.js 14, TypeScript, and T
    ```
 
 2. Set environment variables:
-   Copy `.env.example` to `.env` and add your Google Gemini API Key (for analysis features).
+   Copy `.env.example` to `.env.local` and add your Google Gemini API Key.
    ```bash
-   cp .env.example .env.local
+   GOOGLE_API_KEY=your_api_key_here
    ```
 
 3. Run development server:
@@ -36,7 +36,7 @@ Professional AI Video Production Studio built with Next.js 14, TypeScript, and T
 ## Architecture
 - **State**: Zustand (Global studio state)
 - **Styling**: Tailwind CSS
-- **AI**: `@google/genai` (Gemini 3 Flash Preview) for text analysis.
+- **AI**: `@google/generative-ai` (Gemini 1.5 Flash) for text analysis.
 - **Strict Mode**: Enabled.
 
 ## Packaging

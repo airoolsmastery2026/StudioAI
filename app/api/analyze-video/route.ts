@@ -7,6 +7,7 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
+      console.warn("GOOGLE_API_KEY is missing in environment variables.");
       return NextResponse.json(
         { error: "Missing GOOGLE_API_KEY" },
         { status: 500 }
@@ -42,6 +43,7 @@ Return RAW JSON only.
 
     return NextResponse.json(JSON.parse(cleanJson));
   } catch (err: any) {
+    console.error("Analysis Error:", err);
     return NextResponse.json(
       { error: "Analyze video failed" },
       { status: 500 }
