@@ -1,51 +1,50 @@
-import { NextResponse } from 'next/server';
-import { GoogleGenAI } from "@google/genai";
-import { DEFAULT_DNA } from '@/lib/visualDNA';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { description } = await req.json();
+    const { description, metadata } = await req.json();
 
-    if (!process.env.API_KEY) {
-      console.warn("API_KEY missing, using mock analysis");
-      // Fallback for demo without key
-      return NextResponse.json({ dna: DEFAULT_DNA });
+    const apiKey = process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "Missing GOOGLE_API_KEY" },
+        { status: 500 }
+      );
     }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    const prompt = `
-      Analyze this video description and extract its "Visual DNA" into valid JSON.
-      Do NOT add markdown formatting.
-      Description: "${description}"
-      
-      Required JSON Structure:
-      {
-        "duration": "string",
-        "aspectRatio": "string",
-        "cameraType": "string",
-        "lightingFlow": "string",
-        "motionStyle": "string",
-        "pacing": "string",
-        "colorGrade": "string"
-      }
-    `;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
     });
-    
-    const text = response.text || "";
-    
-    // Cleanup json
-    const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    const dna = JSON.parse(cleanText);
 
-    return NextResponse.json({ dna });
+    const prompt = `
+Analyze this video concept: "${description}".
+Duration: ${metadata?.duration || 5}s.
 
-  } catch (error) {
-    console.error("Analysis Error:", error);
-    return NextResponse.json({ error: "Failed to analyze" }, { status: 500 });
+Return a JSON object with keys:
+cameraType, lightingFlow, motionStyle, pacing.
+Return RAW JSON only.
+`;
+
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+
+    const rawText = response.text() ?? "";
+    if (!rawText) {
+      throw new Error("Empty model response");
+    }
+
+    const cleanJson = rawText
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    return NextResponse.json(JSON.parse(cleanJson));
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: "Analyze video failed" },
+      { status: 500 }
+    );
   }
 }

@@ -107,9 +107,13 @@ export default function ClonePage() {
       if (!res.ok) throw new Error('Analysis failed');
       
       const data = await res.json();
-      if (data.dna) {
-        setVisualDNA(data.dna);
-        const prompt = convertDNAToPrompt(data.dna, "Recreated scene matching structural DNA");
+      
+      // The new API returns the object directly, not wrapped in { dna: ... }
+      // We merge with DEFAULT_DNA to ensure any missing fields from the new simpler prompt don't break the UI
+      if (data) {
+        const mergedDNA = { ...DEFAULT_DNA, ...data };
+        setVisualDNA(mergedDNA);
+        const prompt = convertDNAToPrompt(mergedDNA, "Recreated scene matching structural DNA");
         setGeneratedPrompt(prompt);
       }
     } catch (e) {
