@@ -6,7 +6,7 @@ import { TOPIC_LIBRARY, getTemplateById } from '@/lib/topicLibrary';
 import { AVAILABLE_MODELS, isModelCompatible, getCompatibleModelsForTemplate } from '@/lib/modelMapper';
 import { generateSafePrompt } from '@/lib/promptEngine';
 import { v4 as uuidv4 } from 'uuid';
-import { AlertCircle, CheckCircle, Play } from 'lucide-react';
+import { AlertCircle, CheckCircle, Play, Star } from 'lucide-react';
 import Link from 'next/link';
 
 export default function TopicsPage() {
@@ -26,6 +26,18 @@ export default function TopicsPage() {
   const currentTopic = TOPIC_LIBRARY.find(t => t.id === selectedTopicId);
   const currentTemplate = selectedTemplateId && selectedTopicId ? getTemplateById(selectedTopicId, selectedTemplateId) : null;
   const compatibleModels = currentTemplate ? getCompatibleModelsForTemplate(currentTemplate.compatibleModels) : [];
+
+  const handleTemplateSelect = (templateId: string) => {
+    setTemplate(templateId);
+    
+    // Auto-select the "best" model (first in the compatible list)
+    if (currentTopic) {
+        const template = currentTopic.templates.find(t => t.id === templateId);
+        if (template && template.compatibleModels.length > 0) {
+            setModel(template.compatibleModels[0]);
+        }
+    }
+  };
 
   const handleGenerate = async () => {
     if (!currentTopic || !currentTemplate || !selectedModelId) return;
@@ -104,7 +116,7 @@ export default function TopicsPage() {
                     {currentTopic?.templates.map(tpl => (
                          <button
                          key={tpl.id}
-                         onClick={() => setTemplate(tpl.id)}
+                         onClick={() => handleTemplateSelect(tpl.id)}
                          className={`w-full p-4 rounded-lg border text-left transition-all ${
                            selectedTemplateId === tpl.id 
                            ? 'bg-purple-600/20 border-purple-500 text-white' 
@@ -124,21 +136,31 @@ export default function TopicsPage() {
 
           {/* 3. Select Model */}
           <section>
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">3. Select Model</h3>
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center justify-between">
+                3. Select Model
+                {selectedModelId && <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded-full flex items-center gap-1"><CheckCircle size={10}/> Auto-selected</span>}
+            </h3>
             {!selectedTemplateId ? (
                  <div className="text-gray-500 italic text-sm p-4 border border-dashed border-studio-700 rounded">Please select a template first.</div>
             ) : (
                 <div className="grid grid-cols-2 gap-3">
-                    {compatibleModels.map(model => (
+                    {compatibleModels.map((model, idx) => (
                          <button
                          key={model.id}
                          onClick={() => setModel(model.id)}
-                         className={`p-3 rounded-lg border text-left transition-all ${
+                         className={`p-3 rounded-lg border text-left transition-all relative ${
                            selectedModelId === model.id 
                            ? 'bg-green-600/20 border-green-500 text-white' 
                            : 'bg-studio-800 border-studio-700 text-gray-400 hover:border-studio-600'
                          }`}
                        >
+                         {idx === 0 && (
+                             <div className="absolute -top-2 -right-2">
+                                 <span className="bg-yellow-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center shadow-lg">
+                                     <Star size={8} className="mr-1 fill-black" /> BEST
+                                 </span>
+                             </div>
+                         )}
                          <div className="font-medium text-sm">{model.name}</div>
                          <div className="text-xs text-gray-500 mt-1">Max {model.maxDuration}s</div>
                        </button>

@@ -36,7 +36,7 @@ Professional AI Video Production Studio built with Next.js 14, TypeScript, and T
 ## Architecture
 - **State**: Zustand (Global studio state)
 - **Styling**: Tailwind CSS
-- **AI**: `@google/generative-ai` (Gemini 1.5 Flash) for text analysis.
+- **AI**: `@google/genai` (Gemini 3 Flash Preview) for text analysis.
 - **Strict Mode**: Enabled.
 
 ## Packaging
