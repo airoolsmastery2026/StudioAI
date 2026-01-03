@@ -2,17 +2,16 @@
 
 import { useState } from 'react';
 import { useStudioStore } from '@/store/studioStore';
-import { DNA_OPTIONS, DEFAULT_DNA } from '@/lib/visualDNA';
+import { DEFAULT_DNA } from '@/lib/visualDNA';
 import { convertDNAToPrompt } from '@/lib/dnaToPrompt';
-import { AVAILABLE_MODELS } from '@/lib/modelMapper';
 import { v4 as uuidv4 } from 'uuid';
-import { Scan, Sparkles, AlertTriangle, Info, X, Monitor, Sun, Zap, Palette, Ratio, ChevronRight } from 'lucide-react';
-import Link from 'next/link';
+import { Scan, Sparkles, AlertTriangle, Info, X, Monitor, Sun, Zap, Palette, Ratio, ChevronRight, Gauge, Check } from 'lucide-react';
 
-// Guide Data Structure
+// Enhanced Guide Data with State Mapping
 const DNA_GUIDE_DATA = [
   {
     id: 'camera',
+    dnaKey: 'cameraType',
     label: 'Camera',
     icon: Monitor,
     description: 'How the observer moves in the scene',
@@ -26,29 +25,44 @@ const DNA_GUIDE_DATA = [
   },
   {
     id: 'lighting',
+    dnaKey: 'lightingFlow',
     label: 'Lighting',
     icon: Sun,
     description: 'Atmosphere and shadow interaction',
     items: [
-      { name: 'Natural Day', desc: 'Soft sunlight, realistic shadows.', color: 'bg-[#fdfbd4]' },
-      { name: 'Golden Hour', desc: 'Warm, low-angle sun. Romantic/Nostalgic.', color: 'bg-orange-300' },
-      { name: 'Cinematic Night', desc: 'Blue tones, deep blacks, high contrast.', color: 'bg-slate-900 text-gray-300' },
-      { name: 'Studio High-Key', desc: 'Bright, even, no harsh shadows.', color: 'bg-white border border-gray-200' }
+      { name: 'Natural Day', desc: 'Soft sunlight, realistic shadows.', color: 'bg-[#fdfbd4] border-yellow-100' },
+      { name: 'Golden Hour', desc: 'Warm, low-angle sun. Romantic/Nostalgic.', color: 'bg-orange-300 border-orange-400' },
+      { name: 'Cinematic Night', desc: 'Blue tones, deep blacks, high contrast.', color: 'bg-slate-900 border-slate-700' },
+      { name: 'Studio High-Key', desc: 'Bright, even, no harsh shadows.', color: 'bg-white border-gray-200' }
     ]
   },
   {
     id: 'motion',
+    dnaKey: 'motionStyle',
     label: 'Motion',
     icon: Zap,
     description: 'Energy within the frame',
     items: [
-      { name: 'Subtle', desc: 'Micro-movements: breathing, wind, blinking.' },
-      { name: 'Dynamic', desc: 'High energy: running, falling, fast action.' },
-      { name: 'Slow Motion', desc: 'Expanded time. Emphasizes emotional weight.' }
+      { name: 'Subtle', desc: 'Micro-movements: breathing, wind, blinking.', anim: 'hover:scale-[1.01] transition-transform' },
+      { name: 'Dynamic', desc: 'High energy: running, falling, fast action.', anim: 'hover:translate-x-1 transition-transform' },
+      { name: 'Slow Motion', desc: 'Expanded time. Emphasizes emotional weight.', anim: 'hover:opacity-75 transition-opacity duration-700' }
+    ]
+  },
+  {
+    id: 'pacing',
+    dnaKey: 'pacing',
+    label: 'Pacing',
+    icon: Gauge,
+    description: 'Speed of the edit or action flow',
+    items: [
+      { name: 'Slow', desc: 'Meditative, lingering shots.', visual: 'w-1/3' },
+      { name: 'Medium', desc: 'Standard narrative flow.', visual: 'w-2/3' },
+      { name: 'Fast', desc: 'Rapid, energetic, chaotic.', visual: 'w-full' }
     ]
   },
   {
     id: 'color',
+    dnaKey: 'colorGrade',
     label: 'Color',
     icon: Palette,
     description: 'Artistic color grading',
@@ -62,14 +76,15 @@ const DNA_GUIDE_DATA = [
   },
   {
     id: 'ratio',
+    dnaKey: 'aspectRatio',
     label: 'Aspect Ratio',
     icon: Ratio,
     description: 'Frame dimensions',
     items: [
-      { name: '16:9', desc: 'Standard Widescreen', aspect: 'w-16 h-9' },
-      { name: '9:16', desc: 'Vertical / Mobile', aspect: 'w-9 h-16' },
-      { name: '1:1', desc: 'Square', aspect: 'w-12 h-12' },
-      { name: '2.35:1', desc: 'Cinematic Anamorphic', aspect: 'w-20 h-8' }
+      { name: '16:9', desc: 'Standard Widescreen', aspect: 'aspect-video w-16' },
+      { name: '9:16', desc: 'Vertical / Mobile', aspect: 'aspect-[9/16] h-10' },
+      { name: '1:1', desc: 'Square', aspect: 'aspect-square w-10' },
+      { name: '2.35:1', desc: 'Cinematic Anamorphic', aspect: 'aspect-[21/9] w-20' }
     ]
   }
 ];
@@ -108,8 +123,6 @@ export default function ClonePage() {
       
       const data = await res.json();
       
-      // The new API returns the object directly, not wrapped in { dna: ... }
-      // We merge with DEFAULT_DNA to ensure any missing fields from the new simpler prompt don't break the UI
       if (data) {
         const mergedDNA = { ...DEFAULT_DNA, ...data };
         setVisualDNA(mergedDNA);
@@ -120,6 +133,15 @@ export default function ClonePage() {
       setError("Failed to analyze visual structure. Please try again.");
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleManualDnaSelect = (key: string, value: string) => {
+    const newDNA = { ...visualDNA, [key]: value };
+    setVisualDNA(newDNA);
+    // Auto-update prompt if it exists, otherwise leave it blank until generate
+    if (generatedPrompt) {
+        setGeneratedPrompt(convertDNAToPrompt(newDNA, cloneInputText || "Manually configured scene"));
     }
   };
 
@@ -169,7 +191,7 @@ export default function ClonePage() {
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${showGuide ? 'bg-purple-600 border-purple-500 text-white' : 'bg-studio-800 border-studio-700 text-gray-400 hover:text-white'}`}
             >
                 {showGuide ? <X size={18} /> : <Info size={18} />}
-                {showGuide ? 'Close Guide' : 'Visual Reference'}
+                {showGuide ? 'Close Guide' : 'Interactive Guide'}
             </button>
         </div>
       </header>
@@ -177,12 +199,12 @@ export default function ClonePage() {
       {/* INTERACTIVE GUIDE SECTION */}
       {showGuide && (
           <div className="mb-12 bg-studio-800 rounded-xl border border-studio-700 overflow-hidden shadow-2xl animate-in slide-in-from-top-4 duration-300">
-              <div className="flex border-b border-studio-700 bg-studio-900/50">
+              <div className="flex border-b border-studio-700 bg-studio-900/50 overflow-x-auto">
                   {DNA_GUIDE_DATA.map((cat) => (
                       <button
                           key={cat.id}
                           onClick={() => setActiveGuideTab(cat.id)}
-                          className={`flex-1 py-4 px-2 flex flex-col items-center justify-center gap-2 transition-colors border-b-2 ${
+                          className={`flex-1 py-4 px-4 min-w-[100px] flex flex-col items-center justify-center gap-2 transition-colors border-b-2 ${
                               activeGuideTab === cat.id 
                               ? 'border-purple-500 text-white bg-studio-800' 
                               : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-studio-800/50'
@@ -204,28 +226,53 @@ export default function ClonePage() {
                               <p className="text-gray-400 text-sm">{cat.description}</p>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {cat.items.map((item, idx) => (
-                                  <div key={idx} className="bg-studio-900 p-4 rounded-lg border border-studio-700 flex gap-4 items-center">
-                                      {/* Visual Cues */}
-                                      <div className="shrink-0 w-16 h-16 rounded bg-studio-800 flex items-center justify-center overflow-hidden border border-studio-700">
-                                          {cat.id === 'ratio' && 'aspect' in item && (
-                                              <div className={`${item.aspect} bg-gray-500 rounded-sm border border-gray-400`} />
-                                          )}
-                                          {cat.id === 'color' && 'gradient' in item && (
-                                              <div className={`w-full h-full bg-gradient-to-br ${item.gradient}`} />
-                                          )}
-                                          {cat.id === 'lighting' && 'color' in item && (
-                                               <div className={`w-10 h-10 rounded-full shadow-lg ${item.color}`} />
-                                          )}
-                                          {cat.id === 'camera' && <Monitor className="text-gray-600" />}
-                                          {cat.id === 'motion' && <Zap className="text-gray-600" />}
-                                      </div>
-                                      <div>
-                                          <h4 className="font-bold text-white text-sm">{item.name}</h4>
-                                          <p className="text-xs text-gray-500 mt-1 leading-relaxed">{item.desc}</p>
-                                      </div>
-                                  </div>
-                              ))}
+                              {cat.items.map((item, idx) => {
+                                  const isSelected = (visualDNA as any)[cat.dnaKey] === item.name;
+                                  return (
+                                    <button 
+                                        key={idx} 
+                                        onClick={() => handleManualDnaSelect(cat.dnaKey, item.name)}
+                                        className={`text-left p-4 rounded-lg border flex gap-4 items-center transition-all group relative ${
+                                            isSelected
+                                            ? 'bg-purple-900/20 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.2)]'
+                                            : 'bg-studio-900 border-studio-700 hover:border-studio-500 hover:bg-studio-900/80'
+                                        }`}
+                                    >
+                                        {/* Selection Indicator */}
+                                        {isSelected && (
+                                            <div className="absolute top-2 right-2 text-purple-400">
+                                                <Check size={16} strokeWidth={3} />
+                                            </div>
+                                        )}
+
+                                        {/* Visual Cues */}
+                                        <div className="shrink-0 w-16 h-16 rounded bg-studio-800 flex items-center justify-center overflow-hidden border border-studio-700">
+                                            {cat.id === 'ratio' && 'aspect' in item && (
+                                                <div className={`${item.aspect} bg-gray-500 rounded-sm border border-gray-400`} />
+                                            )}
+                                            {cat.id === 'color' && 'gradient' in item && (
+                                                <div className={`w-full h-full bg-gradient-to-br ${item.gradient}`} />
+                                            )}
+                                            {cat.id === 'lighting' && 'color' in item && (
+                                                <div className={`w-10 h-10 rounded-full shadow-lg border ${item.color}`} />
+                                            )}
+                                            {cat.id === 'pacing' && 'visual' in item && (
+                                                <div className="w-12 h-2 bg-studio-700 rounded-full overflow-hidden">
+                                                    <div className={`h-full bg-green-500 ${item.visual}`} />
+                                                </div>
+                                            )}
+                                            {cat.id === 'camera' && <Monitor className={`text-gray-600 ${isSelected ? 'text-purple-400' : ''}`} />}
+                                            {cat.id === 'motion' && (
+                                                <Zap className={`text-gray-600 ${isSelected ? 'text-purple-400' : ''} ${'anim' in item ? item.anim : ''}`} />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h4 className={`font-bold text-sm ${isSelected ? 'text-purple-300' : 'text-white'}`}>{item.name}</h4>
+                                            <p className="text-xs text-gray-500 mt-1 leading-relaxed">{item.desc}</p>
+                                        </div>
+                                    </button>
+                                  );
+                              })}
                           </div>
                       </div>
                   ))}
@@ -261,38 +308,52 @@ export default function ClonePage() {
                 </button>
                 {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
             </div>
+            
+            <div className="p-4 bg-blue-900/20 border border-blue-800 rounded-lg flex gap-3 text-sm text-blue-200">
+                <Info className="shrink-0 mt-0.5" size={16} />
+                <p>
+                    <strong>Tip:</strong> You can click on the items in the Interactive Guide above to manually fine-tune the extracted DNA values.
+                </p>
+            </div>
         </div>
 
-        <div className="bg-studio-800 p-6 rounded-xl border border-studio-700">
+        <div className="bg-studio-800 p-6 rounded-xl border border-studio-700 flex flex-col h-full">
             <h3 className="text-lg font-bold text-white mb-4">DNA Signature</h3>
             
-            <div className="space-y-4">
-                {Object.entries(visualDNA).map(([key, value]) => (
-                    <div key={key} className="flex justify-between items-center border-b border-studio-700 pb-2">
-                        <span className="text-gray-400 capitalize flex items-center gap-2">
-                            {key === 'cameraType' && <Monitor size={14} className="text-blue-500"/>}
-                            {key === 'lightingFlow' && <Sun size={14} className="text-orange-500"/>}
-                            {key === 'motionStyle' && <Zap size={14} className="text-yellow-500"/>}
-                            {key === 'colorGrade' && <Palette size={14} className="text-pink-500"/>}
-                            {key === 'aspectRatio' && <Ratio size={14} className="text-green-500"/>}
-                            {key.replace(/([A-Z])/g, ' $1').trim()}
-                        </span>
-                        <span className="text-purple-300 font-mono text-sm text-right">{value as string}</span>
-                    </div>
-                ))}
+            <div className="space-y-0 flex-1">
+                {Object.entries(visualDNA).map(([key, value]) => {
+                     // Find icon for this key
+                     const guideItem = DNA_GUIDE_DATA.find(g => g.dnaKey === key);
+                     const Icon = guideItem ? guideItem.icon : Scan;
+                     
+                     return (
+                        <div key={key} className="flex justify-between items-center border-b border-studio-700 py-3 last:border-0 group hover:bg-studio-700/30 px-2 rounded transition-colors cursor-default">
+                            <span className="text-gray-400 capitalize flex items-center gap-3">
+                                <Icon size={16} className="text-studio-500 group-hover:text-purple-400 transition-colors"/>
+                                {key.replace(/([A-Z])/g, ' $1').trim()}
+                            </span>
+                            <span className="text-purple-300 font-mono text-sm text-right bg-studio-900 px-2 py-1 rounded border border-studio-700">
+                                {value as string}
+                            </span>
+                        </div>
+                     );
+                })}
             </div>
 
             {generatedPrompt && (
                 <div className="mt-6 p-4 bg-studio-900 rounded border border-studio-700">
-                    <span className="text-xs text-gray-500 uppercase">Generated Divergent Prompt</span>
-                    <p className="text-sm text-gray-300 mt-1">{generatedPrompt}</p>
+                    <span className="text-xs text-gray-500 uppercase flex items-center gap-2 mb-2">
+                        <Sparkles size={12} className="text-yellow-500"/>
+                        Generated Divergent Prompt
+                    </span>
+                    <p className="text-sm text-gray-300 leading-relaxed">{generatedPrompt}</p>
                 </div>
             )}
 
             <button
                 disabled={!generatedPrompt}
                 onClick={handleCreateClone}
-                className="mt-6 w-full py-3 bg-green-600 hover:bg-green-500 disabled:bg-studio-700 disabled:text-gray-500 text-white font-bold rounded-lg transition-all"
+                className="mt-6 w-full py-3 bg-green-600 hover:bg-green-500 disabled:bg-studio-700 disabled:text-gray-500 text-white font-bold rounded-lg transition-all shadow-lg shadow-green-900/20"
             >
                 Generate Clone
             </button>
