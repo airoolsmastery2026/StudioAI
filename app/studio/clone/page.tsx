@@ -5,7 +5,7 @@ import { useStudioStore } from '@/store/studioStore';
 import { DEFAULT_DNA } from '@/lib/visualDNA';
 import { convertDNAToPrompt } from '@/lib/dnaToPrompt';
 import { v4 as uuidv4 } from 'uuid';
-import { Scan, Sparkles, AlertTriangle, Info, X, Monitor, Sun, Zap, Palette, Ratio, ChevronRight, Gauge, Check } from 'lucide-react';
+import { Scan, Sparkles, AlertTriangle, Info, X, Monitor, Sun, Zap, Palette, Ratio, Gauge, Check, MousePointerClick } from 'lucide-react';
 
 // Enhanced Guide Data with State Mapping
 const DNA_GUIDE_DATA = [
@@ -139,15 +139,29 @@ export default function ClonePage() {
   const handleManualDnaSelect = (key: string, value: string) => {
     const newDNA = { ...visualDNA, [key]: value };
     setVisualDNA(newDNA);
-    // Auto-update prompt if it exists, otherwise leave it blank until generate
     if (generatedPrompt) {
         setGeneratedPrompt(convertDNAToPrompt(newDNA, cloneInputText || "Manually configured scene"));
     }
   };
 
+  const handleDnaParameterClick = (key: string) => {
+    const guideItem = DNA_GUIDE_DATA.find(g => g.dnaKey === key);
+    if (guideItem) {
+        setActiveGuideTab(guideItem.id);
+        setShowGuide(true);
+        // Small delay to allow render then smooth scroll
+        setTimeout(() => {
+            const guideElement = document.getElementById('interactive-guide');
+            if (guideElement) {
+                guideElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
+    }
+  };
+
   const handleCreateClone = () => {
       const finalPrompt = generatedPrompt || convertDNAToPrompt(visualDNA, "Recreated scene");
-      const modelId = 'runway'; // Defaulting for clone mode
+      const modelId = 'runway'; 
 
       const newJob = {
           id: uuidv4(),
@@ -161,7 +175,6 @@ export default function ClonePage() {
       
       addJobs([newJob]);
       
-      // Mock start
       fetch('/api/generate-video', {
         method: 'POST',
         body: JSON.stringify({ jobId: newJob.id, prompt: finalPrompt, model: modelId })
@@ -198,7 +211,7 @@ export default function ClonePage() {
 
       {/* INTERACTIVE GUIDE SECTION */}
       {showGuide && (
-          <div className="mb-12 bg-studio-800 rounded-xl border border-studio-700 overflow-hidden shadow-2xl animate-in slide-in-from-top-4 duration-300">
+          <div id="interactive-guide" className="mb-12 bg-studio-800 rounded-xl border border-studio-700 overflow-hidden shadow-2xl animate-in slide-in-from-top-4 duration-300">
               <div className="flex border-b border-studio-700 bg-studio-900/50 overflow-x-auto">
                   {DNA_GUIDE_DATA.map((cat) => (
                       <button
@@ -238,14 +251,12 @@ export default function ClonePage() {
                                             : 'bg-studio-900 border-studio-700 hover:border-studio-500 hover:bg-studio-900/80'
                                         }`}
                                     >
-                                        {/* Selection Indicator */}
                                         {isSelected && (
                                             <div className="absolute top-2 right-2 text-purple-400">
                                                 <Check size={16} strokeWidth={3} />
                                             </div>
                                         )}
 
-                                        {/* Visual Cues */}
                                         <div className="shrink-0 w-16 h-16 rounded bg-studio-800 flex items-center justify-center overflow-hidden border border-studio-700">
                                             {cat.id === 'ratio' && 'aspect' in item && (
                                                 <div className={`${item.aspect} bg-gray-500 rounded-sm border border-gray-400`} />
@@ -312,7 +323,7 @@ export default function ClonePage() {
             <div className="p-4 bg-blue-900/20 border border-blue-800 rounded-lg flex gap-3 text-sm text-blue-200">
                 <Info className="shrink-0 mt-0.5" size={16} />
                 <p>
-                    <strong>Tip:</strong> You can click on the items in the Interactive Guide above to manually fine-tune the extracted DNA values.
+                    <strong>Interactive Mode:</strong> Click any parameter in the <strong>DNA Signature</strong> below to learn what it means and adjust it in the guide.
                 </p>
             </div>
         </div>
@@ -322,26 +333,35 @@ export default function ClonePage() {
             
             <div className="space-y-0 flex-1">
                 {Object.entries(visualDNA).map(([key, value]) => {
-                     // Find icon for this key
                      const guideItem = DNA_GUIDE_DATA.find(g => g.dnaKey === key);
                      const Icon = guideItem ? guideItem.icon : Scan;
                      
                      return (
-                        <div key={key} className="flex justify-between items-center border-b border-studio-700 py-3 last:border-0 group hover:bg-studio-700/30 px-2 rounded transition-colors cursor-default">
+                        <button 
+                            key={key} 
+                            onClick={() => handleDnaParameterClick(key)}
+                            className="w-full flex justify-between items-center border-b border-studio-700 py-3 last:border-0 group hover:bg-studio-700/50 px-3 rounded transition-all cursor-pointer text-left"
+                            title="Click to edit in guide"
+                        >
                             <span className="text-gray-400 capitalize flex items-center gap-3">
                                 <Icon size={16} className="text-studio-500 group-hover:text-purple-400 transition-colors"/>
-                                {key.replace(/([A-Z])/g, ' $1').trim()}
+                                <span className="group-hover:text-white transition-colors">
+                                    {key.replace(/([A-Z])/g, ' $1').trim()}
+                                </span>
                             </span>
-                            <span className="text-purple-300 font-mono text-sm text-right bg-studio-900 px-2 py-1 rounded border border-studio-700">
-                                {value as string}
-                            </span>
-                        </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-purple-300 font-mono text-sm text-right bg-studio-900 px-2 py-1 rounded border border-studio-700 group-hover:border-purple-500/50 transition-colors">
+                                    {value as string}
+                                </span>
+                                <MousePointerClick size={14} className="opacity-0 group-hover:opacity-50 text-gray-400" />
+                            </div>
+                        </button>
                      );
                 })}
             </div>
 
             {generatedPrompt && (
-                <div className="mt-6 p-4 bg-studio-900 rounded border border-studio-700">
+                <div className="mt-6 p-4 bg-studio-900 rounded border border-studio-700 animate-in fade-in duration-500">
                     <span className="text-xs text-gray-500 uppercase flex items-center gap-2 mb-2">
                         <Sparkles size={12} className="text-yellow-500"/>
                         Generated Divergent Prompt

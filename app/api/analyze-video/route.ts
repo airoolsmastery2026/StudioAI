@@ -3,13 +3,14 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { description, metadata } = await req.json();
+    const body = await req.json();
+    const { description, metadata } = body;
 
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
-      console.warn("GOOGLE_API_KEY is missing in environment variables.");
+      console.error("GOOGLE_API_KEY is missing");
       return NextResponse.json(
-        { error: "Missing GOOGLE_API_KEY" },
+        { error: "Server misconfiguration: API Key missing" },
         { status: 500 }
       );
     }
@@ -20,32 +21,41 @@ export async function POST(req: Request) {
     });
 
     const prompt = `
-Analyze this video concept: "${description}".
-Duration: ${metadata?.duration || 5}s.
+Analyze this video concept for a professional film studio.
+Concept: "${description}".
+Target Duration: ${metadata?.duration || 5}s.
 
-Return a JSON object with keys:
-cameraType, lightingFlow, motionStyle, pacing.
-Return RAW JSON only.
+Extract the visual DNA structure. Return ONLY a valid JSON object.
+Required Keys:
+- cameraType (e.g. "Static Tripod", "Dolly In", "Slow Pan")
+- lightingFlow (e.g. "Natural Day", "Golden Hour", "Cyberpunk Neon")
+- motionStyle (e.g. "Subtle", "Dynamic", "Slow Motion")
+- pacing (e.g. "Slow", "Medium", "Fast")
+- colorGrade (e.g. "Neutral", "Warm", "Cool", "Vintage")
+- aspectRatio (e.g. "16:9", "2.35:1")
+
+Do not wrap in markdown code blocks. Return raw JSON.
 `;
 
     const result = await model.generateContent(prompt);
     const response = result.response;
+    const text = response.text();
 
-    const rawText = response.text() ?? "";
-    if (!rawText) {
-      throw new Error("Empty model response");
+    if (!text) {
+      throw new Error("Empty response from AI model");
     }
 
-    const cleanJson = rawText
+    // Sanitize output in case the model adds markdown
+    const cleanJson = text
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
 
     return NextResponse.json(JSON.parse(cleanJson));
   } catch (err: any) {
-    console.error("Analysis Error:", err);
+    console.error("Analysis API Error:", err);
     return NextResponse.json(
-      { error: "Analyze video failed" },
+      { error: "Failed to analyze video concept." },
       { status: 500 }
     );
   }
