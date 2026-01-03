@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useStudioStore } from '@/store/studioStore';
@@ -5,7 +6,7 @@ import { TOPIC_LIBRARY, getTemplateById } from '@/lib/topicLibrary';
 import { getCompatibleModelsForTemplate } from '@/lib/modelMapper';
 import { createBatchJobs } from '@/lib/batchEngine';
 import { generateSafePrompt } from '@/lib/promptEngine';
-import { Layers, PlayCircle } from 'lucide-react';
+import { Layers, PlayCircle, Sliders, Zap, Gauge } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function BatchPage() {
@@ -15,10 +16,14 @@ export default function BatchPage() {
     selectedTemplateId, 
     selectedModelId,
     batchSize,
+    generationSettings,
     setTopic,
     setTemplate,
     setModel,
     setBatchSize,
+    setQuality,
+    setMotionIntensity,
+    setRenderPriority,
     addJobs
   } = useStudioStore();
 
@@ -32,10 +37,13 @@ export default function BatchPage() {
     const basePrompt = generateSafePrompt(currentTemplate.basePrompt);
     const jobs = createBatchJobs(batchSize, currentTopic.id, currentTemplate.id, selectedModelId, basePrompt);
     
-    addJobs(jobs);
-
-    // In a real app, we'd fire these off to the API here or let the jobs page useEffect handle picking them up.
-    // For this demo, we just add them to the store and redirect.
+    // Attach settings to each job
+    const jobsWithSettings = jobs.map(j => ({
+        ...j,
+        settings: { ...generationSettings }
+    }));
+    
+    addJobs(jobsWithSettings);
     router.push('/studio/jobs');
   };
 
@@ -90,6 +98,63 @@ export default function BatchPage() {
                     <option value="">Select Model</option>
                     {compatibleModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
+            </div>
+        </div>
+
+        {/* Global Settings for Batch */}
+        <div className="bg-studio-900/50 p-6 rounded-xl border border-studio-700/50">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Sliders size={16} className="text-green-500" /> Batch Job Settings
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-2">Quality</label>
+                    <div className="flex bg-studio-800 rounded p-1 border border-studio-700">
+                        {(['Standard', 'Pro', 'Ultra'] as const).map(tier => (
+                            <button
+                                key={tier}
+                                onClick={() => setQuality(tier)}
+                                className={`flex-1 text-xs py-1.5 rounded transition-all ${
+                                    generationSettings.quality === tier ? 'bg-studio-600 text-white' : 'text-gray-500 hover:text-gray-300'
+                                }`}
+                            >
+                                {tier}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-2">Motion</label>
+                    <div className="flex bg-studio-800 rounded p-1 border border-studio-700">
+                        {(['Low', 'Medium', 'High'] as const).map(lvl => (
+                            <button
+                                key={lvl}
+                                onClick={() => setMotionIntensity(lvl)}
+                                className={`flex-1 text-xs py-1.5 rounded transition-all ${
+                                    generationSettings.motion === lvl ? 'bg-studio-600 text-white' : 'text-gray-500 hover:text-gray-300'
+                                }`}
+                            >
+                                {lvl}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-2">Priority</label>
+                    <div className="flex bg-studio-800 rounded p-1 border border-studio-700">
+                        {(['Speed', 'Quality'] as const).map(p => (
+                            <button
+                                key={p}
+                                onClick={() => setRenderPriority(p)}
+                                className={`flex-1 text-xs py-1.5 rounded transition-all ${
+                                    generationSettings.priority === p ? 'bg-studio-600 text-white' : 'text-gray-500 hover:text-gray-300'
+                                }`}
+                            >
+                                {p}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
         </div>
 

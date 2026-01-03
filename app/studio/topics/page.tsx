@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -6,7 +7,7 @@ import { TOPIC_LIBRARY, getTemplateById } from '@/lib/topicLibrary';
 import { getCompatibleModelsForTemplate } from '@/lib/modelMapper';
 import { generateSafePrompt } from '@/lib/promptEngine';
 import { v4 as uuidv4 } from 'uuid';
-import { CheckCircle, Play, Star, Lock, Sliders, ShieldCheck } from 'lucide-react';
+import { CheckCircle, Play, Star, Lock, Sliders, ShieldCheck, Gauge, Zap, Layers } from 'lucide-react';
 import Link from 'next/link';
 
 export default function TopicsPage() {
@@ -14,9 +15,13 @@ export default function TopicsPage() {
     selectedTopicId, 
     selectedTemplateId, 
     selectedModelId,
+    generationSettings,
     setTopic,
     setTemplate,
     setModel,
+    setQuality,
+    setMotionIntensity,
+    setRenderPriority,
     addJobs
   } = useStudioStore();
 
@@ -55,7 +60,8 @@ export default function TopicsPage() {
         topicId: currentTopic.id,
         templateId: currentTemplate.id,
         modelId: selectedModelId,
-        finalPrompt
+        finalPrompt,
+        settings: { ...generationSettings }
     };
 
     // Simulate Network Delay
@@ -66,7 +72,12 @@ export default function TopicsPage() {
         // Mock API Call
         fetch('/api/generate-video', {
             method: 'POST',
-            body: JSON.stringify({ jobId: newJob.id, prompt: finalPrompt, model: selectedModelId })
+            body: JSON.stringify({ 
+                jobId: newJob.id, 
+                prompt: finalPrompt, 
+                model: selectedModelId,
+                settings: generationSettings
+            })
         });
 
         setIsGenerating(false);
@@ -176,6 +187,84 @@ export default function TopicsPage() {
             )}
           </section>
 
+          {/* 4. Pro Studio Settings */}
+          {selectedModelId && (
+            <section className="bg-studio-800/40 p-5 rounded-xl border border-studio-700/50 space-y-4 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center gap-2 mb-2">
+                    <Sliders size={16} className="text-purple-400" />
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Pro Studio Controls</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Quality Tier */}
+                    <div>
+                        <label className="block text-xs font-medium text-gray-400 mb-2 flex items-center gap-2">
+                            <Layers size={12}/> Quality Tier
+                        </label>
+                        <div className="flex bg-studio-900 rounded p-1 border border-studio-700">
+                            {(['Standard', 'Pro', 'Ultra'] as const).map(tier => (
+                                <button
+                                    key={tier}
+                                    onClick={() => setQuality(tier)}
+                                    className={`flex-1 text-xs py-1.5 rounded transition-all ${
+                                        generationSettings.quality === tier 
+                                        ? 'bg-studio-700 text-white shadow-sm font-medium' 
+                                        : 'text-gray-500 hover:text-gray-300'
+                                    }`}
+                                >
+                                    {tier}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Motion Intensity */}
+                    <div>
+                        <label className="block text-xs font-medium text-gray-400 mb-2 flex items-center gap-2">
+                            <Zap size={12}/> Motion Intensity
+                        </label>
+                        <div className="flex bg-studio-900 rounded p-1 border border-studio-700">
+                            {(['Low', 'Medium', 'High'] as const).map(level => (
+                                <button
+                                    key={level}
+                                    onClick={() => setMotionIntensity(level)}
+                                    className={`flex-1 text-xs py-1.5 rounded transition-all ${
+                                        generationSettings.motion === level 
+                                        ? 'bg-studio-700 text-white shadow-sm font-medium' 
+                                        : 'text-gray-500 hover:text-gray-300'
+                                    }`}
+                                >
+                                    {level}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Render Priority */}
+                    <div>
+                        <label className="block text-xs font-medium text-gray-400 mb-2 flex items-center gap-2">
+                            <Gauge size={12}/> Priority
+                        </label>
+                        <div className="flex bg-studio-900 rounded p-1 border border-studio-700">
+                            {(['Speed', 'Quality'] as const).map(p => (
+                                <button
+                                    key={p}
+                                    onClick={() => setRenderPriority(p)}
+                                    className={`flex-1 text-xs py-1.5 rounded transition-all ${
+                                        generationSettings.priority === p 
+                                        ? 'bg-studio-700 text-white shadow-sm font-medium' 
+                                        : 'text-gray-500 hover:text-gray-300'
+                                    }`}
+                                >
+                                    {p}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </section>
+          )}
+
         </div>
 
         {/* Right Column: Preview & Action (4 cols) */}
@@ -223,6 +312,12 @@ export default function TopicsPage() {
                         <div className="flex justify-between text-sm py-2 border-b border-white/5">
                             <span className="text-gray-500">Model Provider</span>
                             <span className="text-blue-400 font-medium">{compatibleModels.find(m => m.id === selectedModelId)?.provider || '-'}</span>
+                        </div>
+                        <div className="flex justify-between text-sm py-2 border-b border-white/5">
+                            <span className="text-gray-500">Config</span>
+                            <span className="text-purple-400 font-medium text-xs">
+                                {generationSettings.quality} / {generationSettings.motion} Motion
+                            </span>
                         </div>
                     </div>
                 </div>
