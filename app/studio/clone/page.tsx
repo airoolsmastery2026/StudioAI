@@ -5,7 +5,7 @@ import { useStudioStore } from '@/store/studioStore';
 import { DEFAULT_DNA } from '@/lib/visualDNA';
 import { convertDNAToPrompt } from '@/lib/dnaToPrompt';
 import { v4 as uuidv4 } from 'uuid';
-import { Scan, Sparkles, AlertTriangle, Info, X, Monitor, Sun, Zap, Palette, Ratio, Gauge, Check, MousePointerClick } from 'lucide-react';
+import { Scan, Sparkles, AlertTriangle, Info, X, Monitor, Sun, Zap, Palette, Ratio, Gauge, Check, MousePointerClick, Play } from 'lucide-react';
 
 // Enhanced Guide Data
 const DNA_GUIDE_DATA = [
@@ -30,10 +30,10 @@ const DNA_GUIDE_DATA = [
     icon: Sun,
     description: 'Atmosphere and shadow interaction',
     items: [
-      { name: 'Natural Day', desc: 'Soft sunlight, realistic shadows.', color: 'bg-[#fdfbd4] border-yellow-100' },
-      { name: 'Golden Hour', desc: 'Warm, low-angle sun. Romantic/Nostalgic.', color: 'bg-orange-300 border-orange-400' },
-      { name: 'Cinematic Night', desc: 'Blue tones, deep blacks, high contrast.', color: 'bg-slate-900 border-slate-700' },
-      { name: 'Studio High-Key', desc: 'Bright, even, no harsh shadows.', color: 'bg-white border-gray-200' }
+      { name: 'Natural Day', desc: 'Soft sunlight, realistic shadows.', color: 'bg-[#fdfbd4] border-yellow-100 shadow-[0_0_20px_rgba(255,255,200,0.3)]' },
+      { name: 'Golden Hour', desc: 'Warm, low-angle sun. Romantic/Nostalgic.', color: 'bg-orange-300 border-orange-400 shadow-[0_0_20px_rgba(251,146,60,0.4)]' },
+      { name: 'Cinematic Night', desc: 'Blue tones, deep blacks, high contrast.', color: 'bg-slate-900 border-slate-700 shadow-[0_0_20px_rgba(15,23,42,0.8)]' },
+      { name: 'Studio High-Key', desc: 'Bright, even, no harsh shadows.', color: 'bg-white border-gray-200 shadow-[0_0_20px_rgba(255,255,255,0.5)]' }
     ]
   },
   {
@@ -55,9 +55,9 @@ const DNA_GUIDE_DATA = [
     icon: Gauge,
     description: 'Speed of the edit or action flow',
     items: [
-      { name: 'Slow', desc: 'Meditative, lingering shots.', visual: 'w-1/3' },
-      { name: 'Medium', desc: 'Standard narrative flow.', visual: 'w-2/3' },
-      { name: 'Fast', desc: 'Rapid, energetic, chaotic.', visual: 'w-full' }
+      { name: 'Slow', desc: 'Meditative, lingering shots.', visual: 'w-1/3 bg-blue-500' },
+      { name: 'Medium', desc: 'Standard narrative flow.', visual: 'w-2/3 bg-green-500' },
+      { name: 'Fast', desc: 'Rapid, energetic, chaotic.', visual: 'w-full bg-red-500' }
     ]
   },
   {
@@ -149,7 +149,6 @@ export default function ClonePage() {
     if (guideItem) {
         setActiveGuideTab(guideItem.id);
         setShowGuide(true);
-        // Small delay to allow render then smooth scroll
         setTimeout(() => {
             const guideElement = document.getElementById('interactive-guide');
             if (guideElement) {
@@ -183,6 +182,41 @@ export default function ClonePage() {
       alert("Clone job started!");
   };
 
+  // Helper to generate dynamic styles for the Live Preview
+  const getPreviewStyles = () => {
+    let styles: any = { transition: 'all 0.5s ease-in-out' };
+    
+    // Ratio
+    switch(visualDNA.aspectRatio) {
+        case '16:9': styles.aspectRatio = '16/9'; styles.width = '100%'; styles.maxWidth = '400px'; break;
+        case '9:16': styles.aspectRatio = '9/16'; styles.width = '120px'; break;
+        case '1:1': styles.aspectRatio = '1/1'; styles.width = '250px'; break;
+        case '2.35:1': styles.aspectRatio = '2.35/1'; styles.width = '100%'; break;
+        default: styles.aspectRatio = '16/9'; styles.width = '100%';
+    }
+
+    return styles;
+  };
+
+  const getPreviewColorClass = () => {
+      switch(visualDNA.colorGrade) {
+          case 'Warm': return 'bg-gradient-to-tr from-orange-500/40 to-red-500/20 mix-blend-overlay';
+          case 'Cool': return 'bg-gradient-to-tr from-blue-500/40 to-cyan-500/20 mix-blend-overlay';
+          case 'Vintage': return 'bg-gradient-to-tr from-yellow-700/40 to-orange-900/40 sepia mix-blend-multiply';
+          case 'Cyberpunk': return 'bg-gradient-to-tr from-purple-500/50 via-pink-500/30 to-cyan-500/50 mix-blend-overlay contrast-125';
+          default: return 'bg-black/10';
+      }
+  };
+
+  const getPreviewLightingClass = () => {
+     switch(visualDNA.lightingFlow) {
+         case 'Cinematic Night': return 'bg-slate-900/80';
+         case 'Golden Hour': return 'bg-orange-100/10';
+         case 'Studio High-Key': return 'bg-white/20';
+         default: return 'bg-transparent';
+     }
+  };
+
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <header className="mb-8 border-b border-studio-700 pb-6">
@@ -212,6 +246,40 @@ export default function ClonePage() {
       {/* INTERACTIVE GUIDE SECTION */}
       {showGuide && (
           <div id="interactive-guide" className="mb-12 bg-studio-800 rounded-xl border border-studio-700 overflow-hidden shadow-2xl animate-in slide-in-from-top-4 duration-300">
+              
+              {/* LIVE PREVIEW AREA */}
+              <div className="border-b border-studio-700 bg-black/40 p-8 flex flex-col items-center justify-center relative min-h-[300px]">
+                  <h4 className="absolute top-4 left-4 text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                      <Play size={12} /> Live DNA Preview
+                  </h4>
+                  
+                  {/* The Dynamic Box */}
+                  <div 
+                    className={`relative border-2 border-studio-500 bg-studio-800 shadow-2xl flex items-center justify-center overflow-hidden ${getPreviewLightingClass()}`}
+                    style={getPreviewStyles()}
+                  >
+                      {/* Color Grade Overlay */}
+                      <div className={`absolute inset-0 ${getPreviewColorClass()} z-10 pointer-events-none`} />
+                      
+                      {/* Grid Lines for reference */}
+                      <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+
+                      {/* Content Icon */}
+                      <div className="z-20 text-white/80 flex flex-col items-center gap-2">
+                         <Scan size={48} strokeWidth={1} className={visualDNA.motionStyle === 'Dynamic' ? 'animate-bounce' : visualDNA.motionStyle === 'Slow Motion' ? 'animate-pulse' : ''} />
+                         <span className="text-xs font-mono opacity-50 uppercase tracking-widest">{visualDNA.cameraType}</span>
+                      </div>
+                  </div>
+
+                  {/* DNA Legend */}
+                  <div className="mt-8 flex gap-4 text-xs text-gray-400 font-mono">
+                      <span className="flex items-center gap-1"><Ratio size={12}/> {visualDNA.aspectRatio}</span>
+                      <span className="flex items-center gap-1"><Palette size={12}/> {visualDNA.colorGrade}</span>
+                      <span className="flex items-center gap-1"><Sun size={12}/> {visualDNA.lightingFlow}</span>
+                  </div>
+              </div>
+
+              {/* TABS */}
               <div className="flex border-b border-studio-700 bg-studio-900/50 overflow-x-auto">
                   {DNA_GUIDE_DATA.map((cat) => (
                       <button
@@ -228,6 +296,8 @@ export default function ClonePage() {
                       </button>
                   ))}
               </div>
+
+              {/* TAB CONTENT */}
               <div className="p-6">
                   {DNA_GUIDE_DATA.map((cat) => (
                       <div key={cat.id} className={activeGuideTab === cat.id ? 'block' : 'hidden'}>
@@ -259,17 +329,17 @@ export default function ClonePage() {
 
                                         <div className="shrink-0 w-16 h-16 rounded bg-studio-800 flex items-center justify-center overflow-hidden border border-studio-700">
                                             {cat.id === 'ratio' && 'aspect' in item && (
-                                                <div className={`${item.aspect} bg-gray-500 rounded-sm border border-gray-400`} />
+                                                <div className={`${item.aspect} bg-gray-500 rounded-sm border border-gray-400 transition-all group-hover:bg-gray-400`} />
                                             )}
                                             {cat.id === 'color' && 'gradient' in item && (
-                                                <div className={`w-full h-full bg-gradient-to-br ${item.gradient}`} />
+                                                <div className={`w-full h-full bg-gradient-to-br ${item.gradient} opacity-80 group-hover:opacity-100 transition-opacity`} />
                                             )}
                                             {cat.id === 'lighting' && 'color' in item && (
-                                                <div className={`w-10 h-10 rounded-full shadow-lg border ${item.color}`} />
+                                                <div className={`w-10 h-10 rounded-full shadow-lg border ${item.color} transform group-hover:scale-110 transition-transform`} />
                                             )}
                                             {cat.id === 'pacing' && 'visual' in item && (
                                                 <div className="w-12 h-2 bg-studio-700 rounded-full overflow-hidden">
-                                                    <div className={`h-full bg-green-500 ${item.visual}`} />
+                                                    <div className={`h-full ${item.visual}`} />
                                                 </div>
                                             )}
                                             {cat.id === 'camera' && <Monitor className={`text-gray-600 ${isSelected ? 'text-purple-400' : ''}`} />}
