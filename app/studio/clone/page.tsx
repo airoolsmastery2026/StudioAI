@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -5,7 +6,7 @@ import { useStudioStore } from '@/store/studioStore';
 import { DEFAULT_DNA } from '@/lib/visualDNA';
 import { convertDNAToPrompt } from '@/lib/dnaToPrompt';
 import { v4 as uuidv4 } from 'uuid';
-import { Scan, Sparkles, AlertTriangle, Info, X, Monitor, Sun, Zap, Palette, Ratio, Gauge, Check, MousePointerClick, Play } from 'lucide-react';
+import { Scan, Sparkles, AlertTriangle, Info, X, Monitor, Sun, Zap, Palette, Ratio, Gauge, Check, MousePointerClick, Play, ChevronDown } from 'lucide-react';
 
 // Enhanced Guide Data
 const DNA_GUIDE_DATA = [
@@ -405,27 +406,35 @@ export default function ClonePage() {
                 {Object.entries(visualDNA).map(([key, value]) => {
                      const guideItem = DNA_GUIDE_DATA.find(g => g.dnaKey === key);
                      const Icon = guideItem ? guideItem.icon : Scan;
+                     const hasOptions = guideItem && guideItem.items.length > 0;
                      
                      return (
-                        <button 
-                            key={key} 
-                            onClick={() => handleDnaParameterClick(key)}
-                            className="w-full flex justify-between items-center border-b border-studio-700 py-3 last:border-0 group hover:bg-studio-700/50 px-3 rounded transition-all cursor-pointer text-left"
-                            title="Click to edit in guide"
-                        >
-                            <span className="text-gray-400 capitalize flex items-center gap-3">
-                                <Icon size={16} className="text-studio-500 group-hover:text-purple-400 transition-colors"/>
-                                <span className="group-hover:text-white transition-colors">
-                                    {key.replace(/([A-Z])/g, ' $1').trim()}
-                                </span>
-                            </span>
-                            <div className="flex items-center gap-2">
-                                <span className="text-purple-300 font-mono text-sm text-right bg-studio-900 px-2 py-1 rounded border border-studio-700 group-hover:border-purple-500/50 transition-colors">
-                                    {value as string}
-                                </span>
-                                <MousePointerClick size={14} className="opacity-0 group-hover:opacity-50 text-gray-400" />
+                        <div key={key} className="w-full flex justify-between items-center border-b border-studio-700 py-3 last:border-0 px-1">
+                            <div className="flex items-center gap-3 text-gray-400">
+                                 <Icon size={16} className="text-studio-500" />
+                                 <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
                             </div>
-                        </button>
+                            
+                            {hasOptions ? (
+                                <div className="relative group">
+                                    <select
+                                        value={value as string}
+                                        onChange={(e) => handleManualDnaSelect(key, e.target.value)}
+                                        className="appearance-none bg-studio-900 border border-studio-600 text-white text-sm rounded px-3 py-1.5 pr-8 focus:outline-none focus:border-purple-500 transition-all cursor-pointer hover:border-studio-500 w-48 text-right font-medium"
+                                        style={{ textIndent: '1px' }} // fix render glitch
+                                    >
+                                       {guideItem.items.map((opt) => (
+                                           <option key={opt.name} value={opt.name}>{opt.name}</option>
+                                       ))}
+                                    </select>
+                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 group-hover:text-purple-400">
+                                        <ChevronDown size={14} />
+                                    </div>
+                                </div>
+                            ) : (
+                                 <span className="text-gray-500 font-mono text-sm">{value as string}</span>
+                            )}
+                        </div>
                      );
                 })}
             </div>

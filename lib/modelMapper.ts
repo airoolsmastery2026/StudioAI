@@ -1,67 +1,120 @@
-import { ModelSpec } from '@/types';
 
+import { ModelSpec } from '@/types';
+import { IVideoModelAdapter } from './models/BaseModelAdapter';
+import { KlingAdapter } from './models/KlingAdapter';
+import { RunwayAdapter } from './models/RunwayAdapter';
+import { WanAdapter } from './models/WanAdapter';
+import { Veo3Adapter } from './models/Veo3Adapter';
+import { Sora2Adapter } from './models/Sora2Adapter';
+import { GrokAdapter } from './models/GrokAdapter';
+
+// 1. Define Model Capabilities in Registry
 export const AVAILABLE_MODELS: ModelSpec[] = [
   {
     id: 'runway',
-    name: 'Runway Gen-2',
+    name: 'Runway Gen-3',
     provider: 'RunwayML',
     maxDuration: 16,
-    capabilities: ['realistic', 'cinematic'],
-    costFactor: 1.0
+    capabilities: ['realistic', 'cinematic', 'reliable'],
+    costFactor: 1.0,
+    tier: 'professional',
+    supportsAudio: false
   },
   {
-    id: 'pika',
-    name: 'Pika Labs',
-    provider: 'Pika',
-    maxDuration: 3,
-    capabilities: ['animation', 'stylized'],
-    costFactor: 0.8
+    id: 'kling',
+    name: 'Kling AI 1.0',
+    provider: 'Kling',
+    maxDuration: 10,
+    capabilities: ['hyper-realistic', 'human-motion'],
+    costFactor: 1.2,
+    tier: 'professional',
+    supportsAudio: false
   },
   {
-    id: 'luma',
-    name: 'Luma Dream Machine',
-    provider: 'Luma',
-    maxDuration: 5,
-    capabilities: ['3d-consistent', 'fast'],
-    costFactor: 1.2
-  },
-  {
-    id: 'veo',
-    name: 'Google Veo',
+    id: 'veo3',
+    name: 'Veo 3',
     provider: 'Google',
     maxDuration: 60,
-    capabilities: ['long-form', '1080p'],
-    costFactor: 1.5
+    capabilities: ['long-form', '1080p', 'consistent'],
+    costFactor: 1.5,
+    tier: 'enterprise',
+    supportsAudio: true
   },
   {
     id: 'sora2',
     name: 'Sora 2.0',
     provider: 'OpenAI',
     maxDuration: 60,
-    capabilities: ['hyper-realistic', 'complex-motion'],
-    costFactor: 2.0
+    capabilities: ['physics-sim', 'complex-motion', '60fps'],
+    costFactor: 2.5,
+    tier: 'enterprise',
+    supportsAudio: false
+  },
+  {
+    id: 'wan',
+    name: 'Wan Video',
+    provider: 'Wan AI',
+    maxDuration: 5,
+    capabilities: ['high-action', 'dynamic-camera'],
+    costFactor: 0.8,
+    tier: 'consumer',
+    supportsAudio: false
   },
   {
     id: 'grok',
     name: 'Grok Vision',
     provider: 'xAI',
     maxDuration: 10,
-    capabilities: ['spatial-understanding'],
-    costFactor: 1.1
+    capabilities: ['spatial-understanding', 'meme-ready'],
+    costFactor: 1.1,
+    tier: 'consumer',
+    supportsAudio: false
   }
 ];
 
+// 2. Adapter Factory
+const adapterCache: Record<string, IVideoModelAdapter> = {};
+
+export const getModelAdapter = (modelId: string): IVideoModelAdapter => {
+  if (adapterCache[modelId]) {
+    return adapterCache[modelId];
+  }
+
+  let adapter: IVideoModelAdapter;
+
+  switch (modelId) {
+    case 'kling': adapter = new KlingAdapter(); break;
+    case 'runway': adapter = new RunwayAdapter(); break;
+    case 'wan': adapter = new WanAdapter(); break;
+    case 'veo': // legacy mapping
+    case 'veo3': adapter = new Veo3Adapter(); break;
+    case 'sora2': adapter = new Sora2Adapter(); break;
+    case 'grok': adapter = new GrokAdapter(); break;
+    default: 
+      console.warn(`Unknown model ID: ${modelId}, falling back to Runway`);
+      adapter = new RunwayAdapter();
+  }
+
+  adapterCache[modelId] = adapter;
+  return adapter;
+};
+
+// 3. Selection Logic
 export const isModelCompatible = (modelId: string, allowedModels: string[]): boolean => {
-  return allowedModels.includes(modelId);
+  // Normalize legacy IDs if necessary
+  const normalizedId = modelId === 'veo' ? 'veo3' : modelId;
+  const normalizedAllowed = allowedModels.map(m => m === 'veo' ? 'veo3' : m);
+  return normalizedAllowed.includes(normalizedId);
 };
 
 export const getCompatibleModelsForTemplate = (allowedModels: string[]): ModelSpec[] => {
-  // Filter valid models first
-  const models = AVAILABLE_MODELS.filter(m => allowedModels.includes(m.id));
+  // Normalize allowed list
+  const normalizedAllowed = allowedModels.map(m => m === 'veo' ? 'veo3' : m);
   
-  // Sort models based on the order they appear in the allowedModels array
-  // This ensures the template's specific priority order is respected (0 index is best)
+  const models = AVAILABLE_MODELS.filter(m => normalizedAllowed.includes(m.id));
+  
+  // Sort by cost factor (cheapest first) by default, or by order in allowedModels
   return models.sort((a, b) => {
-    return allowedModels.indexOf(a.id) - allowedModels.indexOf(b.id);
+    return normalizedAllowed.indexOf(a.id) - normalizedAllowed.indexOf(b.id);
   });
 };

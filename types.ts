@@ -1,3 +1,4 @@
+
 export type StudioMode = 'single' | 'batch' | 'clone';
 
 export interface PromptTemplate {
@@ -15,6 +16,18 @@ export interface Topic {
   templates: PromptTemplate[];
 }
 
+export type QualityTier = 'Standard' | 'Pro' | 'Ultra';
+export type MotionIntensity = 'Low' | 'Medium' | 'High';
+export type RenderPriority = 'Speed' | 'Quality';
+
+export interface GenerationSettings {
+  quality: QualityTier;
+  motion: MotionIntensity;
+  priority: RenderPriority;
+  duration?: number;
+  aspectRatio?: string;
+}
+
 export interface ModelSpec {
   id: string;
   name: string;
@@ -22,6 +35,9 @@ export interface ModelSpec {
   maxDuration: number;
   capabilities: string[];
   costFactor: number;
+  // Adapter configuration flags
+  tier: 'consumer' | 'professional' | 'enterprise';
+  supportsAudio: boolean;
 }
 
 export interface VisualDNA {
@@ -44,6 +60,7 @@ export interface Job {
   templateId: string;
   modelId: string;
   finalPrompt: string;
+  settings?: GenerationSettings;
   resultUrl?: string;
   error?: string;
 }

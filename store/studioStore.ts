@@ -1,5 +1,6 @@
+
 import { create } from 'zustand';
-import { StudioMode, Job, VisualDNA } from '@/types';
+import { StudioMode, Job, VisualDNA, GenerationSettings, QualityTier, MotionIntensity, RenderPriority } from '@/types';
 import { DEFAULT_DNA } from '@/lib/visualDNA';
 
 interface StudioState {
@@ -8,6 +9,9 @@ interface StudioState {
   selectedTemplateId: string | null;
   selectedModelId: string | null;
   
+  // Global Studio Settings
+  generationSettings: GenerationSettings;
+
   // Clone Mode
   cloneInputText: string;
   visualDNA: VisualDNA;
@@ -21,6 +25,12 @@ interface StudioState {
   setTopic: (id: string) => void;
   setTemplate: (id: string) => void;
   setModel: (id: string) => void;
+  
+  // Settings Actions
+  setQuality: (tier: QualityTier) => void;
+  setMotionIntensity: (intensity: MotionIntensity) => void;
+  setRenderPriority: (priority: RenderPriority) => void;
+
   setCloneInput: (text: string) => void;
   setVisualDNA: (dna: VisualDNA) => void;
   setBatchSize: (size: number) => void;
@@ -35,6 +45,12 @@ export const useStudioStore = create<StudioState>((set) => ({
   selectedTemplateId: null,
   selectedModelId: null,
   
+  generationSettings: {
+    quality: 'Standard',
+    motion: 'Medium',
+    priority: 'Quality'
+  },
+  
   cloneInputText: '',
   visualDNA: DEFAULT_DNA,
   
@@ -45,6 +61,17 @@ export const useStudioStore = create<StudioState>((set) => ({
   setTopic: (id) => set({ selectedTopicId: id, selectedTemplateId: null, selectedModelId: null }), 
   setTemplate: (id) => set({ selectedTemplateId: id }),
   setModel: (id) => set({ selectedModelId: id }),
+
+  setQuality: (quality) => set((state) => ({ 
+    generationSettings: { ...state.generationSettings, quality } 
+  })),
+  setMotionIntensity: (motion) => set((state) => ({ 
+    generationSettings: { ...state.generationSettings, motion } 
+  })),
+  setRenderPriority: (priority) => set((state) => ({ 
+    generationSettings: { ...state.generationSettings, priority } 
+  })),
+  
   setCloneInput: (text: string) => set({ cloneInputText: text }),
   setVisualDNA: (dna) => set({ visualDNA: dna }),
   setBatchSize: (size) => set({ batchSize: size }),
