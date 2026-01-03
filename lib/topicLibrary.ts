@@ -1,3 +1,4 @@
+
 import { Topic } from '@/types';
 
 export const TOPIC_LIBRARY: Topic[] = [
@@ -11,14 +12,14 @@ export const TOPIC_LIBRARY: Topic[] = [
         label: 'Minimalist Zen',
         intent: 'Create a peaceful, uncluttered living space',
         basePrompt: 'A wide shot of a minimalist living room, soft morning sunlight, beige tones, low profile furniture, 8k resolution, photorealistic',
-        compatibleModels: ['runway', 'luma', 'veo']
+        compatibleModels: ['runway', 'luma', 'veo3']
       },
       {
         id: 'lr-luxury',
         label: 'Urban Luxury',
         intent: 'Showcase high-end penthouse aesthetics',
         basePrompt: 'Interior view of a luxury penthouse living room at night, city skyline visible through floor-to-ceiling windows, ambient lighting, cinematic',
-        compatibleModels: ['runway', 'sora2', 'veo']
+        compatibleModels: ['runway', 'sora2', 'veo3']
       }
     ]
   },
@@ -32,14 +33,14 @@ export const TOPIC_LIBRARY: Topic[] = [
         label: 'Bohemian Chic',
         intent: 'Warm, textured, and relaxed atmosphere',
         basePrompt: 'A cozy bohemian bedroom, macrame wall hangings, plants, warm sunlight filtering through linen curtains, highly detailed',
-        compatibleModels: ['pika', 'luma']
+        compatibleModels: ['kling', 'runway']
       },
       {
         id: 'br-modern',
         label: 'Ultra Modern',
         intent: 'Sleek lines and cool tones',
         basePrompt: 'Sleek modern bedroom, monochrome color palette, hidden lighting, sharp focus, architectural digest style',
-        compatibleModels: ['runway', 'veo', 'grok']
+        compatibleModels: ['runway', 'veo3', 'grok']
       }
     ]
   },
@@ -53,14 +54,28 @@ export const TOPIC_LIBRARY: Topic[] = [
         label: 'Rustic Farmhouse',
         intent: 'Traditional warmth with natural materials',
         basePrompt: 'Rustic farmhouse kitchen, wooden beams, copper cookware, natural light, dust motes dancing in light beams, 4k cinematic',
-        compatibleModels: ['runway', 'pika']
+        compatibleModels: ['runway', 'kling']
       },
       {
         id: 'kit-chef',
         label: 'Professional Chef',
         intent: 'Stainless steel and high functionality',
         basePrompt: 'Professional stainless steel kitchen, sharp focus, bright clinical lighting, steam rising from a pot, macro details',
-        compatibleModels: ['luma', 'veo', 'sora2']
+        compatibleModels: ['veo3', 'sora2', 'runway']
+      }
+    ]
+  },
+  {
+    id: 'clone',
+    name: 'Visual DNA',
+    description: 'Style replication engine',
+    templates: [
+      {
+        id: 'dna-replication',
+        label: 'DNA Replication',
+        intent: 'Replicate visual structure',
+        basePrompt: 'Visual DNA Replication', 
+        compatibleModels: ['runway', 'kling', 'veo3']
       }
     ]
   }

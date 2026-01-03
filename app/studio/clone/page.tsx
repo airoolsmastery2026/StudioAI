@@ -1,11 +1,12 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStudioStore } from '@/store/studioStore';
 import { DEFAULT_DNA } from '@/lib/visualDNA';
 import { convertDNAToPrompt } from '@/lib/dnaToPrompt';
 import { AVAILABLE_MODELS } from '@/lib/modelMapper';
+import { getTemplateById } from '@/lib/topicLibrary';
 import { v4 as uuidv4 } from 'uuid';
 import { Scan, Sparkles, AlertTriangle, Info, X, Monitor, Sun, Zap, Palette, Ratio, Gauge, Check, Play, ChevronDown, Sliders, Layers } from 'lucide-react';
 
@@ -98,7 +99,6 @@ export default function ClonePage() {
     visualDNA, 
     setVisualDNA,
     addJobs,
-    // Add settings state
     generationSettings,
     setQuality,
     setMotionIntensity,
@@ -108,11 +108,21 @@ export default function ClonePage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedPrompt, setGeneratedPrompt] = useState<string>('');
-  const [selectedCloneModel, setSelectedCloneModel] = useState('runway');
+  
+  // Default to first compatible model from 'clone' topic
+  const [selectedCloneModel, setSelectedCloneModel] = useState<string>('runway');
   
   // Guide State
   const [showGuide, setShowGuide] = useState(false);
   const [activeGuideTab, setActiveGuideTab] = useState('camera');
+
+  useEffect(() => {
+    // Auto-select logic for Clone page based on Library definition
+    const cloneTemplate = getTemplateById('clone', 'dna-replication');
+    if (cloneTemplate && cloneTemplate.compatibleModels.length > 0) {
+        setSelectedCloneModel(cloneTemplate.compatibleModels[0]);
+    }
+  }, []);
 
   const handleAnalyze = async () => {
     if (!cloneInputText.trim()) return;

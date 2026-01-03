@@ -7,7 +7,7 @@ import { TOPIC_LIBRARY, getTemplateById } from '@/lib/topicLibrary';
 import { getCompatibleModelsForTemplate } from '@/lib/modelMapper';
 import { generateSafePrompt } from '@/lib/promptEngine';
 import { v4 as uuidv4 } from 'uuid';
-import { CheckCircle, Play, Star, Lock, Sliders, ShieldCheck, Gauge, Zap, Layers } from 'lucide-react';
+import { CheckCircle, Play, Star, Lock, Sliders, ShieldCheck, Gauge, Zap, Layers, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 export default function TopicsPage() {
@@ -38,9 +38,13 @@ export default function TopicsPage() {
     if (currentTopic) {
         const template = currentTopic.templates.find(t => t.id === templateId);
         if (template && template.compatibleModels.length > 0) {
+            // AUTO-SELECT LOGIC: Pick the first model in the compatible list
             const bestModelId = template.compatibleModels[0];
             setModel(bestModelId);
             setIsAutoSelected(true);
+            
+            // Clear the "Auto-selected" badge after a few seconds
+            setTimeout(() => setIsAutoSelected(false), 3000);
         }
     }
   };
@@ -108,11 +112,12 @@ export default function TopicsPage() {
                     ? 'bg-blue-600/20 border-blue-500 text-white' 
                     : 'bg-studio-800 border-studio-700 text-gray-400 hover:border-studio-600'
                   }`}
+                  disabled={topic.id === 'clone'} // Hide system topics if rendered
                 >
                   <div className="font-bold">{topic.name}</div>
                   <div className="text-xs opacity-70 mt-1 truncate">{topic.description}</div>
                 </button>
-              ))}
+              )).filter(t => t.key !== 'clone')}
             </div>
           </section>
 
@@ -153,9 +158,16 @@ export default function TopicsPage() {
 
           {/* 3. Select Model */}
           <section>
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center justify-between">
-                3. Render Pipeline
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                    3. Render Pipeline
+                </h3>
+                {isAutoSelected && (
+                    <span className="text-xs text-green-400 flex items-center gap-1 animate-in fade-in slide-in-from-right-2">
+                        <Sparkles size={12} /> Auto-Optimized
+                    </span>
+                )}
+            </div>
             {!selectedTemplateId ? (
                  <div className="text-gray-500 italic text-sm p-4 border border-dashed border-studio-700 rounded bg-studio-800/50">
                     Select a template to view compatible render engines.
@@ -168,12 +180,12 @@ export default function TopicsPage() {
                          onClick={() => { setModel(model.id); setIsAutoSelected(false); }}
                          className={`p-3 rounded-lg border text-left transition-all relative ${
                            selectedModelId === model.id 
-                           ? 'bg-green-600/20 border-green-500 text-white' 
+                           ? 'bg-green-600/20 border-green-500 text-white shadow-[0_0_15px_rgba(34,197,94,0.15)]' 
                            : 'bg-studio-800 border-studio-700 text-gray-400 hover:border-studio-600'
                          }`}
                        >
                          {idx === 0 && (
-                             <div className="absolute -top-2 -right-2">
+                             <div className="absolute -top-2 -right-2 z-10">
                                  <span className="bg-green-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center shadow-lg">
                                      <Star size={8} className="mr-1 fill-black" /> BEST
                                  </span>
