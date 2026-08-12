@@ -38,12 +38,9 @@ export default function TopicsPage() {
     if (currentTopic) {
         const template = currentTopic.templates.find(t => t.id === templateId);
         if (template && template.compatibleModels.length > 0) {
-            // AUTO-SELECT LOGIC: Pick the first model in the compatible list
             const bestModelId = template.compatibleModels[0];
             setModel(bestModelId);
             setIsAutoSelected(true);
-            
-            // Clear the "Auto-selected" badge after a few seconds
             setTimeout(() => setIsAutoSelected(false), 3000);
         }
     }
@@ -53,10 +50,7 @@ export default function TopicsPage() {
     if (!currentTopic || !currentTemplate || !selectedModelId) return;
 
     setIsGenerating(true);
-    
-    // STRICT RULE: Use internal template prompt only. No user input.
     const finalPrompt = generateSafePrompt(currentTemplate.basePrompt);
-    
     const newJob = {
         id: uuidv4(),
         createdAt: Date.now(),
@@ -68,12 +62,9 @@ export default function TopicsPage() {
         settings: { ...generationSettings }
     };
 
-    // Simulate Network Delay
     setTimeout(() => {
         addJobs([newJob]);
         setLastJobId(newJob.id);
-        
-        // Mock API Call
         fetch('/api/generate-video', {
             method: 'POST',
             body: JSON.stringify({ 
@@ -83,7 +74,6 @@ export default function TopicsPage() {
                 settings: generationSettings
             })
         });
-
         setIsGenerating(false);
     }, 800);
   };
@@ -96,10 +86,7 @@ export default function TopicsPage() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Configuration (8 cols) */}
         <div className="lg:col-span-7 space-y-8">
-          
-          {/* 1. Select Topic */}
           <section>
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">1. Select Environment</h3>
             <div className="grid grid-cols-2 gap-3">
@@ -112,7 +99,7 @@ export default function TopicsPage() {
                     ? 'bg-blue-600/20 border-blue-500 text-white' 
                     : 'bg-studio-800 border-studio-700 text-gray-400 hover:border-studio-600'
                   }`}
-                  disabled={topic.id === 'clone'} // Hide system topics if rendered
+                  disabled={topic.id === 'clone'}
                 >
                   <div className="font-bold">{topic.name}</div>
                   <div className="text-xs opacity-70 mt-1 truncate">{topic.description}</div>
@@ -121,7 +108,6 @@ export default function TopicsPage() {
             </div>
           </section>
 
-          {/* 2. Select Template */}
           <section>
              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">2. Select Aesthetic Template</h3>
              {!selectedTopicId ? (
@@ -156,7 +142,6 @@ export default function TopicsPage() {
              )}
           </section>
 
-          {/* 3. Select Model */}
           <section>
             <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
@@ -199,16 +184,13 @@ export default function TopicsPage() {
             )}
           </section>
 
-          {/* 4. Pro Studio Settings */}
           {selectedModelId && (
             <section className="bg-studio-800/40 p-5 rounded-xl border border-studio-700/50 space-y-4 animate-in fade-in slide-in-from-top-2">
                 <div className="flex items-center gap-2 mb-2">
                     <Sliders size={16} className="text-purple-400" />
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider">Pro Studio Controls</h3>
                 </div>
-                
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Quality Tier */}
                     <div>
                         <label className="block text-xs font-medium text-gray-400 mb-2 flex items-center gap-2">
                             <Layers size={12}/> Quality Tier
@@ -230,7 +212,6 @@ export default function TopicsPage() {
                         </div>
                     </div>
 
-                    {/* Motion Intensity */}
                     <div>
                         <label className="block text-xs font-medium text-gray-400 mb-2 flex items-center gap-2">
                             <Zap size={12}/> Motion Intensity
@@ -252,7 +233,6 @@ export default function TopicsPage() {
                         </div>
                     </div>
 
-                    {/* Render Priority */}
                     <div>
                         <label className="block text-xs font-medium text-gray-400 mb-2 flex items-center gap-2">
                             <Gauge size={12}/> Priority
@@ -276,22 +256,18 @@ export default function TopicsPage() {
                 </div>
             </section>
           )}
-
         </div>
 
-        {/* Right Column: Preview & Action (4 cols) */}
         <div className="lg:col-span-5 flex flex-col h-full">
             <div className="bg-studio-800 rounded-xl border border-studio-700 p-6 flex-1 flex flex-col sticky top-6">
                 <div className="flex items-center gap-2 mb-6 border-b border-studio-700 pb-4">
                     <Sliders size={20} className="text-blue-500"/>
                     <h3 className="text-lg font-bold text-white">Production Manifest</h3>
                 </div>
-                
                 <div className="flex-1 space-y-6">
-                    {/* Read Only Prompt View */}
                     <div className="bg-black/30 rounded-lg p-4 border border-studio-700/50 relative group">
-                        <div className="absolute top-3 right-3">
-                            <Lock size={14} className="text-gray-600 group-hover:text-gray-400 transition-colors" title="Prompt Editing Locked"/>
+                        <div className="absolute top-3 right-3" title="Prompt Editing Locked" aria-label="Prompt Editing Locked">
+                            <Lock size={14} className="text-gray-600 group-hover:text-gray-400 transition-colors" aria-hidden="true"/>
                         </div>
                         <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Internal Prompt Logic</h4>
                         {currentTemplate ? (
@@ -302,7 +278,6 @@ export default function TopicsPage() {
                         ) : (
                             <p className="text-sm text-gray-600 italic">Configuration pending...</p>
                         )}
-                        
                         {currentTemplate && (
                             <div className="mt-3 flex gap-2">
                                 <span className="text-[10px] bg-green-900/30 text-green-400 border border-green-900/50 px-2 py-0.5 rounded flex items-center gap-1">

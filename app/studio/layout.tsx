@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { MonitorPlay, Copy, Layers, LayoutGrid, Settings } from 'lucide-react';
+import { MonitorPlay, Copy, Layers, LayoutGrid, Settings, Share2 } from 'lucide-react';
 import React from 'react';
 
 const SidebarItem = ({ href, icon: Icon, label }: { href: string; icon: any; label: string }) => (
@@ -19,7 +19,6 @@ export default function StudioLayout({
 }) {
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
       <aside className="w-64 bg-studio-800 border-r border-studio-700 flex flex-col">
         <div className="p-6 border-b border-studio-700">
           <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
@@ -33,6 +32,7 @@ export default function StudioLayout({
           <SidebarItem href="/studio/topics" icon={Layers} label="Topic Studio" />
           <SidebarItem href="/studio/clone" icon={Copy} label="Clone & DNA" />
           <SidebarItem href="/studio/batch" icon={Settings} label="Batch Engine" />
+          <SidebarItem href="/studio/publish" icon={Share2} label="Social Publish" />
         </nav>
         
         <div className="p-4 border-t border-studio-700 text-xs text-gray-500">
@@ -41,7 +41,6 @@ export default function StudioLayout({
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 overflow-auto bg-studio-900 relative">
         {children}
       </main>
