@@ -6,6 +6,8 @@ const BOT_WORKER_URL = (process.env.BOT_DANG_BAI_WORKER_URL || '').replace(/\/$/
 const BOT_WORKER_TOKEN = process.env.BOT_DANG_BAI_WORKER_TOKEN || '';
 
 const isHttpUrl = (value?: string) => !value || /^https?:\/\//i.test(value);
+const requiresImage = (platform: SocialPlatform) => platform === 'instagram' || platform === 'pinterest';
+const requiresVideo = (platform: SocialPlatform) => platform === 'tiktok' || platform === 'youtube';
 
 export async function POST(request: NextRequest) {
   if (!BOT_WORKER_URL || !BOT_WORKER_TOKEN) {
@@ -30,18 +32,27 @@ export async function POST(request: NextRequest) {
   }
 
   const supported = new Set<SocialPlatform>(SOCIAL_PLATFORMS);
-  const jobs = draft.targets
-    .filter((target) => supported.has(target.platform))
-    .map((target) => ({
-      campaignId: `studioai:${draft.sourceJobId}`,
-      content: draft.content,
-      platforms: [target.platform],
-      scheduledTime: draft.scheduledTime || new Date(Date.now() + 60_000).toISOString(),
-      imageUrl: draft.imageUrl || '',
-      videoUrl: draft.videoUrl || '',
-      targetIds: {},
-      metadata: { source: 'studioai', title: draft.title || '', format: target.format },
-    }));
+  const targets = draft.targets.filter((target) => supported.has(target.platform));
+  const mediaErrors = targets.flatMap((target) => {
+    if (requiresImage(target.platform) && !draft.imageUrl) return [`${target.platform}: cần image URL.`];
+    if (requiresVideo(target.platform) && !draft.videoUrl) return [`${target.platform}: cần video URL.`];
+    return [];
+  });
+  if (mediaErrors.length) {
+    return NextResponse.json({ error: mediaErrors.join(' ') }, { status: 400 });
+  }
+
+  const jobs = targets.map((target) => ({
+    campaignId: `studioai:${draft.sourceJobId}`,
+    title: draft.title || draft.content.slice(0, 100),
+    content: draft.content,
+    platforms: [target.platform],
+    scheduledTime: draft.scheduledTime || new Date(Date.now() + 60_000).toISOString(),
+    imageUrl: draft.imageUrl || '',
+    videoUrl: draft.videoUrl || '',
+    privacyStatus: target.platform === 'youtube' ? 'private' : undefined,
+    targetIds: {},
+  }));
 
   if (!jobs.length) return NextResponse.json({ error: 'Không có nền tảng hợp lệ.' }, { status: 400 });
 
