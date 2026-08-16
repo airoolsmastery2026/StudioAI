@@ -1,64 +1,73 @@
-
 import { NextResponse } from 'next/server';
 import { getModelAdapter } from '@/lib/modelMapper';
 import { GenerationSettings } from '@/types';
 
+const DEFAULT_SETTINGS: GenerationSettings = {
+  quality: 'Standard',
+  motion: 'Medium',
+  priority: 'Quality',
+};
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { jobId, prompt, model, settings } = body;
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    }
 
-    // Validate Input
+    const jobId = String(body.jobId || '').trim();
+    const prompt = String(body.prompt || '').trim();
+    const model = String(body.model || '').trim();
+    const settings = body.settings as GenerationSettings | undefined;
+
     if (!jobId || !prompt || !model) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Default Settings if not provided
-    const genSettings: GenerationSettings = settings || {
-      quality: 'Standard',
-      motion: 'Medium',
-      priority: 'Quality'
-    };
-
-    // 1. Select Adapter
     const adapter = getModelAdapter(model);
-
     if (!adapter) {
-        return NextResponse.json({ error: `Model ${model} is not supported` }, { status: 400 });
+      return NextResponse.json({ error: `Model ${model} is not supported` }, { status: 400 });
     }
 
-    // 2. Check Availability (API Key existence)
+    if (adapter.executionMode !== 'live') {
+      return NextResponse.json({
+        error: `Model provider ${adapter.provider} is not enabled for LIVE generation. Stub/mock adapters are blocked in production paths.`,
+        errorCode: 'PROVIDER_NOT_LIVE',
+      }, { status: 503 });
+    }
+
     if (!adapter.isAvailable()) {
-        console.error(`[API] Model ${model} is configured but missing API Key.`);
-        return NextResponse.json({ 
-            error: `Model provider ${adapter.provider} is currently unavailable (Missing Credentials).` 
-        }, { status: 503 });
+      return NextResponse.json({
+        error: `Model provider ${adapter.provider} is currently unavailable (Missing Credentials).`,
+        errorCode: 'PROVIDER_CREDENTIALS_MISSING',
+      }, { status: 503 });
     }
 
-    // 3. Orchestrate Generation
-    // Note: In a real serverless env with long generation times, we would push to a queue here.
-    // For this architecture, we await the "init" or mock simulation.
-    
-    console.log(`[Orchestration] Starting Job ${jobId} on ${adapter.provider}`);
-    const result = await adapter.generate(prompt, genSettings);
-
+    const result = await adapter.generate(prompt, settings || DEFAULT_SETTINGS);
     if (!result.success) {
-        return NextResponse.json({ 
-            error: result.error || "Generation failed at provider level" 
-        }, { status: 500 });
+      return NextResponse.json({
+        error: result.error || 'Generation failed at provider level',
+        errorCode: 'PROVIDER_GENERATION_FAILED',
+      }, { status: 502 });
     }
 
-    // 4. Return Success
-    return NextResponse.json({ 
-        success: true, 
-        jobId, 
-        status: 'queued', // or 'done' depending on adapter behavior
-        url: result.url,
-        metadata: result.metadata
-    });
+    if (!result.url && !result.jobId) {
+      return NextResponse.json({
+        error: 'Provider returned success without a durable job ID or media URL.',
+        errorCode: 'PROVIDER_RESPONSE_INVALID',
+      }, { status: 502 });
+    }
 
-  } catch (error: any) {
-    console.error("Orchestration Critical Failure:", error);
-    return NextResponse.json({ error: "Internal Orchestration Error" }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      jobId,
+      status: result.url ? 'done' : 'processing',
+      url: result.url || null,
+      providerJobId: result.jobId || null,
+      metadata: result.metadata,
+    });
+  } catch (error) {
+    console.error('Orchestration Critical Failure:', error);
+    return NextResponse.json({ error: 'Internal Orchestration Error' }, { status: 500 });
   }
 }
