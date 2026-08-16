@@ -9,25 +9,23 @@ export interface VideoGenerationResult {
   metadata?: any;
 }
 
+export type AdapterExecutionMode = 'live' | 'stub';
+
 export interface IVideoModelAdapter {
   id: string;
   provider: string;
-  
-  // Capabilities
+  executionMode: AdapterExecutionMode;
   supportedAspectRatios: string[];
   maxDurationSeconds: number;
   supportsNegativePrompt: boolean;
-  
-  // Execution
   generate(prompt: string, settings: GenerationSettings): Promise<VideoGenerationResult>;
-  
-  // Health Check
   isAvailable(): boolean;
 }
 
 export abstract class BaseAdapter implements IVideoModelAdapter {
   abstract id: string;
   abstract provider: string;
+  executionMode: AdapterExecutionMode = 'stub';
   abstract supportedAspectRatios: string[];
   abstract maxDurationSeconds: number;
   abstract supportsNegativePrompt: boolean;
@@ -35,13 +33,11 @@ export abstract class BaseAdapter implements IVideoModelAdapter {
   abstract generate(prompt: string, settings: GenerationSettings): Promise<VideoGenerationResult>;
 
   isAvailable(): boolean {
-    // Default check: simple API key existence
     const key = this.getApiKey();
     return !!key && key.length > 0;
   }
 
   protected getApiKey(): string | undefined {
-    // This should be overridden by specific adapters to check their specific env var
     return undefined;
   }
 
