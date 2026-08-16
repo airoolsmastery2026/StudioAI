@@ -20,6 +20,8 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: LIVE path hardening gate
+        run: node scripts/live-path-gate.mjs
       - name: Build
         env:
           GEMINI_API_KEY: test-key
