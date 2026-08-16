@@ -8,7 +8,6 @@ import { Veo3Adapter } from './models/Veo3Adapter';
 import { Sora2Adapter } from './models/Sora2Adapter';
 import { GrokAdapter } from './models/GrokAdapter';
 
-// 1. Define Model Capabilities in Registry
 export const AVAILABLE_MODELS: ModelSpec[] = [
   {
     id: 'runway',
@@ -72,49 +71,35 @@ export const AVAILABLE_MODELS: ModelSpec[] = [
   }
 ];
 
-// 2. Adapter Factory
 const adapterCache: Record<string, IVideoModelAdapter> = {};
 
-export const getModelAdapter = (modelId: string): IVideoModelAdapter => {
-  if (adapterCache[modelId]) {
-    return adapterCache[modelId];
-  }
+export const getModelAdapter = (modelId: string): IVideoModelAdapter | null => {
+  const normalizedId = modelId === 'veo' ? 'veo3' : modelId;
+  if (adapterCache[normalizedId]) return adapterCache[normalizedId];
 
-  let adapter: IVideoModelAdapter;
-
-  switch (modelId) {
+  let adapter: IVideoModelAdapter | null = null;
+  switch (normalizedId) {
     case 'kling': adapter = new KlingAdapter(); break;
     case 'runway': adapter = new RunwayAdapter(); break;
     case 'wan': adapter = new WanAdapter(); break;
-    case 'veo': // legacy mapping
     case 'veo3': adapter = new Veo3Adapter(); break;
     case 'sora2': adapter = new Sora2Adapter(); break;
     case 'grok': adapter = new GrokAdapter(); break;
-    default: 
-      console.warn(`Unknown model ID: ${modelId}, falling back to Runway`);
-      adapter = new RunwayAdapter();
+    default: return null;
   }
 
-  adapterCache[modelId] = adapter;
+  adapterCache[normalizedId] = adapter;
   return adapter;
 };
 
-// 3. Selection Logic
 export const isModelCompatible = (modelId: string, allowedModels: string[]): boolean => {
-  // Normalize legacy IDs if necessary
   const normalizedId = modelId === 'veo' ? 'veo3' : modelId;
   const normalizedAllowed = allowedModels.map(m => m === 'veo' ? 'veo3' : m);
   return normalizedAllowed.includes(normalizedId);
 };
 
 export const getCompatibleModelsForTemplate = (allowedModels: string[]): ModelSpec[] => {
-  // Normalize allowed list
   const normalizedAllowed = allowedModels.map(m => m === 'veo' ? 'veo3' : m);
-  
   const models = AVAILABLE_MODELS.filter(m => normalizedAllowed.includes(m.id));
-  
-  // Sort by cost factor (cheapest first) by default, or by order in allowedModels
-  return models.sort((a, b) => {
-    return normalizedAllowed.indexOf(a.id) - normalizedAllowed.indexOf(b.id);
-  });
+  return models.sort((a, b) => normalizedAllowed.indexOf(a.id) - normalizedAllowed.indexOf(b.id));
 };
