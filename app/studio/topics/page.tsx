@@ -11,9 +11,9 @@ import { CheckCircle, Play, Star, Lock, Sliders, ShieldCheck, Gauge, Zap, Layers
 import Link from 'next/link';
 
 export default function TopicsPage() {
-  const { 
-    selectedTopicId, 
-    selectedTemplateId, 
+  const {
+    selectedTopicId,
+    selectedTemplateId,
     selectedModelId,
     generationSettings,
     setTopic,
@@ -22,12 +22,14 @@ export default function TopicsPage() {
     setQuality,
     setMotionIntensity,
     setRenderPriority,
-    addJobs
+    addJobs,
+    updateJobStatus,
   } = useStudioStore();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [lastJobId, setLastJobId] = useState<string | null>(null);
   const [isAutoSelected, setIsAutoSelected] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   const currentTopic = TOPIC_LIBRARY.find(t => t.id === selectedTopicId);
   const currentTemplate = selectedTemplateId && selectedTopicId ? getTemplateById(selectedTopicId, selectedTemplateId) : null;
@@ -36,46 +38,65 @@ export default function TopicsPage() {
   const handleTemplateSelect = (templateId: string) => {
     setTemplate(templateId);
     if (currentTopic) {
-        const template = currentTopic.templates.find(t => t.id === templateId);
-        if (template && template.compatibleModels.length > 0) {
-            const bestModelId = template.compatibleModels[0];
-            setModel(bestModelId);
-            setIsAutoSelected(true);
-            setTimeout(() => setIsAutoSelected(false), 3000);
-        }
+      const template = currentTopic.templates.find(t => t.id === templateId);
+      if (template && template.compatibleModels.length > 0) {
+        const bestModelId = template.compatibleModels[0];
+        setModel(bestModelId);
+        setIsAutoSelected(true);
+        setTimeout(() => setIsAutoSelected(false), 3000);
+      }
     }
   };
 
   const handleGenerate = async () => {
-    if (!currentTopic || !currentTemplate || !selectedModelId) return;
+    if (!currentTopic || !currentTemplate || !selectedModelId || isGenerating) return;
 
     setIsGenerating(true);
+    setGenerationError(null);
     const finalPrompt = generateSafePrompt(currentTemplate.basePrompt);
     const newJob = {
-        id: uuidv4(),
-        createdAt: Date.now(),
-        status: 'pending' as const,
-        topicId: currentTopic.id,
-        templateId: currentTemplate.id,
-        modelId: selectedModelId,
-        finalPrompt,
-        settings: { ...generationSettings }
+      id: uuidv4(),
+      createdAt: Date.now(),
+      status: 'pending' as const,
+      topicId: currentTopic.id,
+      templateId: currentTemplate.id,
+      modelId: selectedModelId,
+      finalPrompt,
+      settings: { ...generationSettings },
     };
 
-    setTimeout(() => {
-        addJobs([newJob]);
-        setLastJobId(newJob.id);
-        fetch('/api/generate-video', {
-            method: 'POST',
-            body: JSON.stringify({ 
-                jobId: newJob.id, 
-                prompt: finalPrompt, 
-                model: selectedModelId,
-                settings: generationSettings
-            })
-        });
-        setIsGenerating(false);
-    }, 800);
+    addJobs([newJob]);
+    setLastJobId(newJob.id);
+    updateJobStatus(newJob.id, 'processing');
+
+    try {
+      const response = await fetch('/api/generate-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: newJob.id,
+          prompt: finalPrompt,
+          model: selectedModelId,
+          settings: generationSettings,
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || `Generation HTTP ${response.status}`);
+
+      if (body.status === 'done' && body.url) {
+        updateJobStatus(newJob.id, 'done', body.url);
+      } else if (body.status === 'processing' && body.providerJobId) {
+        updateJobStatus(newJob.id, 'processing');
+      } else {
+        throw new Error('Provider response không có trạng thái bền vững để theo dõi.');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Generation failed.';
+      updateJobStatus(newJob.id, 'error', undefined, message);
+      setGenerationError(message);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -95,8 +116,8 @@ export default function TopicsPage() {
                   key={topic.id}
                   onClick={() => setTopic(topic.id)}
                   className={`p-4 rounded-lg border text-left transition-all ${
-                    selectedTopicId === topic.id 
-                    ? 'bg-blue-600/20 border-blue-500 text-white' 
+                    selectedTopicId === topic.id
+                    ? 'bg-blue-600/20 border-blue-500 text-white'
                     : 'bg-studio-800 border-studio-700 text-gray-400 hover:border-studio-600'
                   }`}
                   disabled={topic.id === 'clone'}
@@ -121,8 +142,8 @@ export default function TopicsPage() {
                          key={tpl.id}
                          onClick={() => handleTemplateSelect(tpl.id)}
                          className={`w-full p-4 rounded-lg border text-left transition-all flex justify-between items-center ${
-                           selectedTemplateId === tpl.id 
-                           ? 'bg-purple-600/20 border-purple-500 text-white' 
+                           selectedTemplateId === tpl.id
+                           ? 'bg-purple-600/20 border-purple-500 text-white'
                            : 'bg-studio-800 border-studio-700 text-gray-400 hover:border-studio-600'
                          }`}
                        >
@@ -164,8 +185,8 @@ export default function TopicsPage() {
                          key={model.id}
                          onClick={() => { setModel(model.id); setIsAutoSelected(false); }}
                          className={`p-3 rounded-lg border text-left transition-all relative ${
-                           selectedModelId === model.id 
-                           ? 'bg-green-600/20 border-green-500 text-white shadow-[0_0_15px_rgba(34,197,94,0.15)]' 
+                           selectedModelId === model.id
+                           ? 'bg-green-600/20 border-green-500 text-white shadow-[0_0_15px_rgba(34,197,94,0.15)]'
                            : 'bg-studio-800 border-studio-700 text-gray-400 hover:border-studio-600'
                          }`}
                        >
@@ -201,8 +222,8 @@ export default function TopicsPage() {
                                     key={tier}
                                     onClick={() => setQuality(tier)}
                                     className={`flex-1 text-xs py-1.5 rounded transition-all ${
-                                        generationSettings.quality === tier 
-                                        ? 'bg-studio-700 text-white shadow-sm font-medium' 
+                                        generationSettings.quality === tier
+                                        ? 'bg-studio-700 text-white shadow-sm font-medium'
                                         : 'text-gray-500 hover:text-gray-300'
                                     }`}
                                 >
@@ -222,8 +243,8 @@ export default function TopicsPage() {
                                     key={level}
                                     onClick={() => setMotionIntensity(level)}
                                     className={`flex-1 text-xs py-1.5 rounded transition-all ${
-                                        generationSettings.motion === level 
-                                        ? 'bg-studio-700 text-white shadow-sm font-medium' 
+                                        generationSettings.motion === level
+                                        ? 'bg-studio-700 text-white shadow-sm font-medium'
                                         : 'text-gray-500 hover:text-gray-300'
                                     }`}
                                 >
@@ -243,8 +264,8 @@ export default function TopicsPage() {
                                     key={p}
                                     onClick={() => setRenderPriority(p)}
                                     className={`flex-1 text-xs py-1.5 rounded transition-all ${
-                                        generationSettings.priority === p 
-                                        ? 'bg-studio-700 text-white shadow-sm font-medium' 
+                                        generationSettings.priority === p
+                                        ? 'bg-studio-700 text-white shadow-sm font-medium'
                                         : 'text-gray-500 hover:text-gray-300'
                                     }`}
                                 >
@@ -324,10 +345,13 @@ export default function TopicsPage() {
                             </>
                         )}
                     </button>
+                    {generationError && (
+                      <p className="mt-3 text-sm text-red-400" role="alert">{generationError}</p>
+                    )}
                     {lastJobId && (
                          <div className="mt-4 text-center animate-in fade-in slide-in-from-bottom-2">
                              <Link href="/studio/jobs" className="text-blue-400 hover:text-blue-300 hover:underline text-sm font-medium flex items-center justify-center gap-1">
-                                 Job #{lastJobId.substring(0,6)} Queued &rarr;
+                                 View Job #{lastJobId.substring(0,6)} &rarr;
                              </Link>
                          </div>
                     )}
